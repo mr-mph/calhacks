@@ -43,8 +43,11 @@ if [ "$USB_GADGET" = "1" ]; then
   echo "== USB-C ethernet gadget (ssh balloon.local over the USB-C cable) =="
   grep -q '^dtoverlay=dwc2' /boot/firmware/config.txt || echo 'dtoverlay=dwc2,dr_mode=peripheral' >> /boot/firmware/config.txt
   grep -q 'modules-load=dwc2' /boot/firmware/cmdline.txt || sed -i 's/rootwait/rootwait modules-load=dwc2,g_ether/' /boot/firmware/cmdline.txt
-  # Pi hands the laptop an address (10.42.0.x) so no manual config is needed on the Mac
-  nmcli con show usb-gadget >/dev/null 2>&1 || nmcli con add type ethernet ifname usb0 con-name usb-gadget ipv4.method shared ipv6.method ignore connection.autoconnect yes >/dev/null
+  # usb0: take DHCP from the Mac if it runs Internet Sharing (gives the Pi internet for apt), otherwise fall back
+  # to a link-local 169.254.x.x address. mDNS (balloon.local) works either way.
+  nmcli con show usb-gadget >/dev/null 2>&1 || nmcli con add type ethernet ifname usb0 con-name usb-gadget \
+    ipv4.method auto ipv4.link-local fallback ipv4.dhcp-timeout 20 ipv6.method link-local \
+    connection.autoconnect yes connection.autoconnect-priority 10 >/dev/null || true
   echo "   (takes effect after reboot)"
 fi
 

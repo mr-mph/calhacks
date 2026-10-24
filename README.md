@@ -25,6 +25,15 @@ Data layout on the SD card: `/data/balloon/sessions/<YYYYmmdd-HHMMSS>/`
 `telemetry.csv` (fixed schema, one row per sample), `markers.csv`, `sensors.json`,
 `video/*.mkv`, `stills/*.jpg` + `stills/index.csv`, `mosaic.jpg`. Everything is downloadable from the dashboard.
 
+## 0. Two ways to reach the Pi
+
+- **USB-C cable to the Mac** (development): run `tools/mac/enable-usb-gadget.sh` once with the SD card in a reader,
+  then the Pi's USB-C port is also an Ethernet link: `ssh tarun@balloon.local`. For internet on the Pi (apt during
+  setup) turn on macOS *System Settings > General > Sharing > Internet Sharing* from your uplink to "RNDIS/Ethernet Gadget".
+- **Phone hotspot** (flight/demo): the balloon is on a string, not a cable, so the dashboard reaches the ground over Wi-Fi.
+  Use a phone hotspot, not venue Wi-Fi (venue networks block device-to-device traffic). Over the USB link:
+  `sudo nmcli dev wifi connect "<hotspot ssid>" password "<password>"`.
+
 ## 1. Flash the Pi (once)
 
 Scripted: `brew install --cask raspberry-pi-imager`, put the microSD in a reader, then
@@ -102,6 +111,41 @@ Name a marker "launch" (the Mark button) and the dashboard shows time aloft; the
 - Post-flight map of higher quality: `python3 -m balloon.mapper --batch /data/balloon/sessions/<s>/stills -o map.jpg --every 2`
 - Develop the dashboard on a laptop with fake sensors:
   `cd pi && BALLOON_SIM=1 BALLOON_DATA=/tmp/balloon python3 -m balloon.server` → http://localhost:8080
+
+## Overnight / fixed-point surveillance mode
+
+The same payload works as a tethered camera mast left up for hours (a few hundred feet on the tether).
+What is already there: every still (2 s) and 60 s video segment is on the SD card, the CSV logs all night,
+and the dashboard replays any session. Extra pieces:
+
+- **Timelapse**: `tools/timelapse.sh /data/balloon/sessions/<s> 24` -> `timelapse.mp4` (24 fps = 48x real time).
+  Night-friendly settings in `/etc/default/balloon`: `BALLOON_STILL_INTERVAL=10`, `BALLOON_CAMERA_FPS=5`
+  (16 GB then lasts > 12 h of video; stills alone last for days).
+- **Pi as its own Wi-Fi network** (no phone hotspot, no venue Wi-Fi): `sudo tools/wifi-mode.sh ap` makes the Pi
+  broadcast "BalloonNet"; anyone who joins opens http://10.42.0.1:8080. Range is line of sight from the balloon
+  to the ground, typically 50-100 m with the Pi's built-in antenna, so at 200 ft up the dashboard usually still
+  works from directly below. If it drops out nothing is lost: logging continues and the page catches up.
+- **Power**: Pi 4 + webcam draws about 3-4 W. A 20,000 mAh bank (~70 Wh) gives roughly 15 h; the dashboard's
+  "throttled" warning in preflight shows if the bank is sagging. Turn off HDMI/LEDs and lower the camera fps
+  to stretch it.
+- **Estimated elevation**: set the local sea-level pressure once (`BALLOON_QNH_HPA` or POST `/api/qnh`) and the
+  dashboard shows elevation above sea level; "Since launch" shows net change from the launch marker.
+
+Ideas that fit this platform (roughly easiest first):
+
+1. **Change/motion detection** on the stills: frame differencing every few seconds, draw boxes, log events
+   to `markers.csv` and alert. Good for a parking lot, a campsite, a crowd.
+2. **Smoke/fire watch**: the air-quality sensor already logs particulate-ish readings; combine with a
+   brightness/colour heuristic on the image (orange glow at night, grey plume by day) for an alert.
+3. **Claude vision captions**: a laptop-side loop pulls `/camera/snapshot.jpg` every 30 s and asks a vision model
+   "what changed, anything concerning?"; show captions on the dashboard and write them to markers.
+4. **Night sky / dawn timelapse** plus the light and temperature curves from the sensors overlaid.
+5. **Micro-weather station**: pressure trend, temperature inversion at dusk, wind proxy from tilt sway;
+   compare 200 ft up vs ground readings from a second sensor.
+6. **Crowd/traffic counting** from the nadir camera (people or cars per minute) with a simple detector.
+7. **Push alerts** (ntfy.sh or SMS) on motion, smoke, altitude drop, low battery, or Wi-Fi loss.
+8. **Tether-length encoder on an ESP32** to measure true line length vs barometric altitude and estimate wind.
+9. **Thermal camera** (MLX90640 is a Grove/I2C part) for night monitoring of people, animals, hot spots.
 
 ## Tuning (`/etc/default/balloon`, then `sudo systemctl restart 'balloon-*'`)
 

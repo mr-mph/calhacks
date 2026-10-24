@@ -13,6 +13,7 @@
   // ---------- chart definitions (one axis per chart; series colors fixed by slot) ----------
   const CHARTS = [
     { id: "altitude", title: "Altitude (relative)", unit: "m", series: [{ f: "altitude_m", label: "altitude" }], markers: true, dec: 1 },
+    { id: "since", title: "Altitude since launch", unit: "m", series: [{ f: "alt_since_launch_m", label: "Δ since launch" }], dec: 1 },
     { id: "vspeed", title: "Vertical speed", unit: "m/s", series: [{ f: "vspeed_mps", label: "v" }], dec: 2 },
     { id: "pressure", title: "Pressure", unit: "hPa", series: [{ f: "pressure_hpa", label: "pressure" }], dec: 2 },
     { id: "temp", title: "Temperature", unit: "°C", series: [{ f: "temp_c", label: "temp" }], dec: 2 },
@@ -29,7 +30,9 @@
     { id: "cpu", title: "Pi CPU temperature", unit: "°C", series: [{ f: "cpu_temp_c", label: "cpu" }], dec: 1 },
   ];
   const TILES = [
-    { f: "altitude_m", label: "Altitude", unit: "m", dec: 1, hero: true },
+    { f: "altitude_m", label: "Altitude (rel.)", unit: "m", dec: 1, hero: true },
+    { f: "alt_since_launch_m", label: "Since launch", unit: "m", dec: 1 },
+    { f: "elevation_msl_m", label: "Elevation (est.)", unit: "m MSL", dec: 0 },
     { f: "vspeed_mps", label: "Climb rate", unit: "m/s", dec: 2 },
     { f: "pressure_hpa", label: "Pressure", unit: "hPa", dec: 1 },
     { f: "temp_c", label: "Temp", unit: "°C", dec: 1 },

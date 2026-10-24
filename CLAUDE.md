@@ -18,7 +18,8 @@ Hardware we actually have (confirmed by the team):
 We do NOT have light, UV, humidity, or SGP30 sensors. Drivers for them exist but must stay off by default.
 
 Pi: hostname `balloon`, user `tarun`, Raspberry Pi OS 64-bit (Bookworm or newer, NetworkManager, /boot/firmware).
-Never commit the Pi password or any credential. SSH uses keys (`ssh-copy-id tarun@balloon.local`).
+Development link is USB-C gadget networking (tools/mac/enable-usb-gadget.sh, then ssh over the cable);
+flight link is a phone hotspot (venue Wi-Fi blocks peer traffic). Never commit the Pi password or any credential. SSH uses keys (`ssh-copy-id tarun@balloon.local`).
 
 ## Architecture (all on the Pi, under /opt/balloon, one systemd unit each)
 
@@ -85,5 +86,9 @@ ssh tarun@balloon.local journalctl -fu balloon-telemetry
 - 2026-10-23: `flash.sh` writes Pi OS Lite 64-bit headless (hostname, user, SSH key, Wi-Fi via cloud-init).
   `wifi-watchdog.sh` fixed: it matched "disconnected" as connected, so it never fired. Helium and lift numbers
   are in `docs/launch-plan.md`. Why a balloon, what we infer, and sponsor-track fit: `docs/pitch.md`.
+- 2026-10-24: added elevation_msl_m (QNH-based) + alt_since_launch_m columns, /api/qnh, timelapse.sh, wifi-mode.sh (Pi as AP).
+  Hardware access still not achieved: venue Wi-Fi isolates clients, Mac USB gadget / direct Ethernet links never
+  answered unicast (suspect the Mac's "Untitled Bridge" virtual interface on the LAN adapter). Hotspot path untested
+  because the hotspot was off while the Pi booted. Next person: get a monitor on the Pi or keep the hotspot on.
 - Ideas not started: metre scale bar on the mosaic (footprint = 2*h*tan(FOV/2)), tilt-rectified stills,
   Claude-vision captions from snapshots (laptop side), ESP32 tether-length encoder, servo pan (code exists, off).
