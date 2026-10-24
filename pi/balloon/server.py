@@ -18,7 +18,9 @@ Runs the sampler thread (so logging continues even with no viewers) and serves:
 import json
 import logging
 from html import escape
+import math
 import os
+from urllib.parse import quote
 import queue
 import time
 import urllib.request
@@ -117,7 +119,12 @@ def api_servo():
     if servo is None:
         return jsonify({"ok": False, "error": "servo not enabled"}), 400
     data = request.get_json(silent=True) or {}
-    angle = float(data.get("angle", 90))
+    try:
+        angle = float(data.get("angle", 90))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "angle must be a number"}), 400
+    if not math.isfinite(angle):
+        return jsonify({"ok": False, "error": "angle must be finite"}), 400
     servo.set_angle(angle)
     return jsonify({"ok": True, "angle": angle})
 
@@ -193,15 +200,18 @@ def api_sessions():
 @app.route("/data/<path:path>")
 def data_files(path):
     root = os.path.realpath(config.DATA_ROOT)
-    full = os.path.realpath(os.path.join(root, path))
+    try:
+        full = os.path.realpath(os.path.join(root, path))
+    except ValueError:  # e.g. an embedded NUL byte
+        abort(400)
     # a bare prefix check would also accept a sibling like /data/balloon-old
     if full != root and not full.startswith(root + os.sep):
         abort(403)
     if os.path.isdir(full):
         entries = sorted(os.listdir(full))
-        html = ["<html><body style='font-family:system-ui'><h3>/data/%s</h3><ul>" % path]
+        html = ["<html><body style='font-family:system-ui'><h3>/data/%s</h3><ul>" % escape(path)]
         for e in entries:
-            html.append("<li><a href='/data/%s/%s'>%s</a></li>" % (escape(path.rstrip("/")), escape(e), escape(e)))
+            html.append("<li><a href='/data/%s/%s'>%s</a></li>" % (escape(quote(path.rstrip("/"))), escape(quote(e)), escape(e)))
         html.append("</ul></body></html>")
         return "\n".join(html)
     return send_from_directory(config.DATA_ROOT, path, as_attachment=False, conditional=True)
