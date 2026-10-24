@@ -5,7 +5,9 @@ flush interval (frame + observations + decisions + alerts together), so a frame 
 (upload URL + batch). If Convex is unreachable, observations wait in a bounded queue, only the newest frame is kept,
 and sends retry with backoff.
 
-Config: ~/.config/balloon/convex.json -> {"url": "https://<deployment>.convex.cloud", "ingest_secret": "..."}
+Config: ~/.config/balloon/convex.json -> {"url": "https://<dev>.convex.cloud", "ingest_secret": "...",
+                                          "prod": {"url": "https://<prod>.convex.cloud", "ingest_secret": "..."}}
+The top level is the dev deployment; ConvexSink(env="prod") uses the "prod" section.
 Requires: pip install convex==0.8.1 (opencv-python is optional, used to shrink frames before upload).
 
     sink = ConvexSink()
@@ -44,7 +46,7 @@ FRAME_JPEG_QUALITY = 75
 
 @dataclass(frozen=True)
 class PendingFrame:
-    path: str
+    jpeg: bytes
     session: str
     t: float
     size: tuple[int, int]
@@ -71,16 +73,52 @@ def is_rejected(error: Exception) -> bool:
     return "ArgumentValidationError" in str(error)
 
 
-def load_config(path: Path = CONFIG_PATH) -> dict[str, str]:
-    cfg = json.loads(path.read_text())
+def load_config(path: Path = CONFIG_PATH, env: str = "dev") -> dict[str, str]:
+    root = json.loads(path.read_text())
+    cfg = root if env == "dev" else root.get(env, {})
     if not cfg.get("url") or not cfg.get("ingest_secret"):
-        raise ValueError(f"{path} needs both 'url' and 'ingest_secret'")
+        raise ValueError(f"{path} needs both 'url' and 'ingest_secret' for the {env} deployment")
     return cfg
 
 
-def shrink_jpeg(path: str, max_width: int) -> tuple[bytes, tuple[int, int] | None]:
+def convex_site(site: dict, image_size: tuple[int, int] | None) -> dict:
+    """Only the fields the Convex `sites` table accepts; image_size lets the map scale polygons to any frame."""
+    zones = [{k: z.get(k) for k in ("id", "kind", "name", "polygon", "capacity")} for z in site.get("zones", [])]
+    spaces = [{k: s[k] for k in ("id", "zone", "polygon")} for s in site.get("spaces", [])]
+    return clean({"site": site["site"], "name": site.get("name"), "reference_frame": site.get("reference_frame"),
+                  "image_size": list(image_size) if image_size else None, "zones": zones, "spaces": spaces})
+
+
+def convex_decision(record: dict) -> dict | None:
+    """A pricing decision in the shape of the `decisions` table; market decisions live in Spacetime."""
+    if record.get("agent") != "pricing":
+        return None
+    return clean({
+        "t": record["t"], "zone": record["zone"], "action": record["action"],
+        "price_before": record["old_price"], "price_after": record["new_price"],
+        "inputs": record["inputs"],
+        "outputs": {"target_price": record.get("target_price"), "code": record.get("code")},
+        "explanation": record.get("explanation") or record["reason"],
+        "model": record.get("explained_by", "engine"),
+    })
+
+
+def alert_severity(record: dict) -> str:
+    if record.get("low_confidence"):
+        return "info"
+    return "critical" if record.get("trigger", {}).get("people_near_rip") else "warning"
+
+
+def convex_alert(record: dict) -> dict:
+    return clean({
+        "t": record["t"], "session": record.get("session"), "text": record["alert"],
+        "uncertainty": record["uncertainty"], "severity": alert_severity(record), "frame": record.get("frame"),
+        "model": record.get("written_by"),
+    })
+
+
+def shrink_jpeg(raw: bytes, max_width: int) -> tuple[bytes, tuple[int, int] | None]:
     """Downscale wide frames so phones don't pull 2 MB every 2 s. Falls back to the original bytes without cv2."""
-    raw = Path(path).read_bytes()
     try:
         import cv2
         import numpy as np
@@ -102,8 +140,9 @@ class ConvexSink:
         flush_interval_s: float = FLUSH_INTERVAL_S,
         call_timeout_s: float = CALL_TIMEOUT_S,
         frame_max_width: int = FRAME_MAX_WIDTH,
+        env: str = "dev",
     ) -> None:
-        cfg = load_config(config_path)
+        cfg = load_config(config_path, env)
         self._secret = cfg["ingest_secret"]
         self._client = ConvexClient(cfg["url"])
         self._flush_interval_s = flush_interval_s
@@ -145,11 +184,25 @@ class ConvexSink:
             self._idle.clear()
         self._wake.set()
 
+    def write(self, kind: str, record: dict) -> None:
+        """The station's Sink interface: observations, pricing decisions and alerts, mapped to the Convex tables."""
+        if kind == "observations":
+            self.write_observations([record])
+        elif kind == "decisions" and (decision := convex_decision(record)):
+            self.write_decision(decision)
+        elif kind == "alerts":
+            self.write_alert(convex_alert(record))
+
     def upload_frame(
-        self, jpeg_path: str, session: str, t: float, size: tuple[int, int], name: str | None = None
+        self, jpeg: str | bytes, session: str, t: float, size: tuple[int, int], name: str | None = None
     ) -> None:
-        """Queue a frame. Only the newest unsent frame is kept. Pass name equal to the observation's 'frame'."""
-        frame = PendingFrame(str(jpeg_path), session, float(t), (int(size[0]), int(size[1])), name or Path(jpeg_path).name)
+        """Queue a frame (a path or the JPEG bytes). Only the newest unsent frame is kept.
+        Pass name equal to the observation's 'frame'."""
+        if isinstance(jpeg, bytes):
+            data, default_name = jpeg, "frame.jpg"
+        else:
+            data, default_name = Path(jpeg).read_bytes(), Path(jpeg).name
+        frame = PendingFrame(data, session, float(t), (int(size[0]), int(size[1])), name or default_name)
         with self._lock:
             self._frame = frame
             self._idle.clear()
@@ -226,7 +279,7 @@ class ConvexSink:
         if frame is None:
             return
         try:
-            data, shrunk = shrink_jpeg(frame.path, self._frame_max_width)
+            data, shrunk = shrink_jpeg(frame.jpeg, self._frame_max_width)
             upload_url = self._call("ingest:generateUploadUrl", {})
             r = requests.post(upload_url, data=data, headers={"Content-Type": "image/jpeg"}, timeout=self._timeout_s)
             r.raise_for_status()

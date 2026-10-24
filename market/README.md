@@ -26,7 +26,7 @@ spacetime publish balloon-market --server local --module-path server --yes
 
 scripts/seed-demo.sh                             # optional: 3 markets, trades, counts (fresh database only)
 
-cd web && pnpm install && pnpm dev               # http://localhost:5173, and http://<laptop-ip>:5173 on phones
+cd web && pnpm install && pnpm dev               # http://localhost:5174, and http://<laptop-ip>:5174 on phones
 ```
 
 Which database the page talks to is fixed at build time (`web/src/config.ts`):
@@ -36,8 +36,9 @@ Which database the page talks to is fixed at build time (`web/src/config.ts`):
 | `pnpm dev` | `ws://<page host>:3000` (the laptop, also from phones on the LAN) | `balloon-market` |
 | `pnpm dev:cloud`, `pnpm build` | `wss://maincloud.spacetimedb.com` | `overhead-market` |
 
-`VITE_SPACETIME_URI` and `VITE_SPACETIME_DB` override either. `VITE_LIVE_URL` and `VITE_ALERTS_URL` point the Live and
-Alerts tabs at the map app; without them those tabs show as not connected. After changing the module, run
+The Live and Alerts tabs link to the map app (`web/`): its dev server on port 5173 for `pnpm dev` (this page runs
+on 5174), `https://overhead-live.vercel.app` for builds. `VITE_SPACETIME_URI`, `VITE_SPACETIME_DB`, `VITE_LIVE_URL`
+and `VITE_ALERTS_URL` override any of these. After changing the module, run
 `pnpm generate` in `web/` to refresh the bindings.
 
 Run the end-to-end test. It publishes a throwaway database and wipes it each run, so it never touches real data:
@@ -129,7 +130,7 @@ curl -X POST http://127.0.0.1:3000/v1/database/balloon-market/call/post_observat
   -d '[1792880000.0, "lot-a", "car_count", 37, 0.86, "stills/000456.jpg"]'
 ```
 
-Python, stdlib only (for `ground/sinks.py`):
+Python, stdlib only (the station uses `ground/spacetime_sink.py`, which does the same with requests):
 
 ```python
 import json, os, urllib.error, urllib.request
@@ -176,8 +177,11 @@ Republish after module changes. Environment values are kept between publishes, s
 ```bash
 cd market
 spacetime publish overhead-market --server maincloud --module-path server --yes
-cd web && pnpm generate && pnpm build             # web/dist is static; host it anywhere
+cd web && pnpm generate && vercel build --prod && vercel deploy --prebuilt --prod   # https://overhead-market.vercel.app
 ```
+
+The page is Vercel project `overhead-market`. It is built on the laptop (`--prebuilt`) because it imports the LMSR
+math from `server/src`, which a deploy of `web/` alone would not upload.
 
 Add columns with `.default(...)` so the publish migrates in place. `--delete-data=always` wipes every account,
 market and oracle claim, after which the station must claim again.

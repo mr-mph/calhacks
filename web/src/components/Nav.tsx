@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { BellSimple, ChartLine, MapTrifold, Moon, Sun } from "@phosphor-icons/react";
+import { MARKET_URL } from "../config";
 
-export type Tab = "live" | "markets" | "alerts";
+export type Tab = "live" | "alerts";
 
-const TABS: { id: Tab; label: string; icon: typeof MapTrifold }[] = [
-  { id: "live", label: "Live", icon: MapTrifold },
-  { id: "markets", label: "Markets", icon: ChartLine },
-  { id: "alerts", label: "Alerts", icon: BellSimple },
+// Markets is the other app (market/web); Live and Alerts are hash routes in this one.
+const TABS: { id: Tab | "markets"; label: string; icon: typeof MapTrifold; href: string }[] = [
+  { id: "live", label: "Live", icon: MapTrifold, href: "#/live" },
+  { id: "markets", label: "Markets", icon: ChartLine, href: MARKET_URL },
+  { id: "alerts", label: "Alerts", icon: BellSimple, href: "#/alerts" },
 ];
 
 type Props = {
@@ -54,16 +56,16 @@ function ThemeToggle() {
 
 export function TopBar({ tab, openAlerts }: Props) {
   return (
-    <header className="sticky top-0 z-20 bg-bg/90 backdrop-blur">
+    <header className="sticky top-0 z-20 bg-bg pt-[env(safe-area-inset-top)] shadow-[0_1px_0_var(--hairline)]">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4">
         <a href="#/live" className="font-display text-xl font-bold">
           Overhead<span className="text-accent">.</span>
         </a>
         <nav aria-label="Sections" className="hidden items-center gap-1 md:flex">
-          {TABS.map(({ id, label }) => (
+          {TABS.map(({ id, label, href }) => (
             <a
               key={id}
-              href={`#/${id}`}
+              href={href}
               aria-current={tab === id ? "page" : undefined}
               className="press flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold text-muted hover:text-text aria-[current=page]:bg-surface-2 aria-[current=page]:text-text"
             >
@@ -82,10 +84,10 @@ export function BottomTabs({ tab, openAlerts }: Props) {
   return (
     <nav aria-label="Sections" className="fixed inset-x-0 bottom-0 z-20 bg-surface pb-[env(safe-area-inset-bottom)] shadow-[0_-1px_0_var(--hairline)] md:hidden">
       <ul className="grid grid-cols-3">
-        {TABS.map(({ id, label, icon: Icon }) => (
+        {TABS.map(({ id, label, icon: Icon, href }) => (
           <li key={id}>
             <a
-              href={`#/${id}`}
+              href={href}
               aria-current={tab === id ? "page" : undefined}
               className="flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs font-semibold text-muted aria-[current=page]:text-text"
             >

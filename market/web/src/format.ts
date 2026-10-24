@@ -7,12 +7,14 @@ const METRIC_UNITS: Record<string, string> = {
   car_count: 'cars',
   crossings_per_hour: 'crossings per hour',
   person_count: 'people',
+  occupancy_pct: 'percent full',
 };
 
 const METRIC_CATEGORIES: Record<string, string> = {
   car_count: 'Parking',
   crossings_per_hour: 'Crosswalk',
-  person_count: 'Beach',
+  person_count: 'People',
+  occupancy_pct: 'Parking',
 };
 
 const COMPARATOR_WORDS: Record<string, string> = {

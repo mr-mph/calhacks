@@ -5,9 +5,10 @@ each frame to the site's reference frame, writes one observation record per fram
 and beach-alert agents. Data shapes follow `docs/architecture.md`.
 
 ```
-stills (Pi or session folder) -> infer.py (YOLO) -> align.py (ORB + RANSAC) -> observe.py -> sinks.py
-                                                                                   |
-                                                         agents/pricing.py, markets.py, alerts.py
+stills (Pi or session folder) -> infer.py (YOLO) -> align.py (ORB + RANSAC) -> observe.py -> sinks.py (JSONL)
+                                                                                   |        convex_sink.py (live map)
+                                                         agents/pricing.py, markets.py,     spacetime_sink.py (markets)
+                                                         alerts.py
 ```
 
 ## Setup
@@ -29,10 +30,10 @@ cd ground
 .venv/bin/python station.py --replay ~/balloon-data/20261024-153000 --site sites/marina.json --agents
 ```
 
-Live, against the Pi over the hotspot or USB-C:
+Live, against the Pi over the hotspot or USB-C, feeding the public map:
 
 ```bash
-.venv/bin/python station.py --pi http://balloon.local:8080 --site sites/marina.json --agents
+.venv/bin/python station.py --pi http://balloon.local:8080 --site sites/marina.json --agents --prod
 ```
 
 Live mode polls `/api/status` for the current session, reads `/data/sessions/<session>/stills/index.csv` every
@@ -47,6 +48,71 @@ Live mode polls `/api/status` for the current session, reads `/data/sessions/<se
 | `--market-every MIN` | Minutes between market proposals (default 30; the first comes after 10 min of history) |
 | `--align-mode` | `similarity` (default, nadir camera) or `homography` (oblique views) |
 | `--out DIR` | Output root (default `ground/out`) |
+| `--realtime` | Replay: shift timestamps so the first still is now and play at the recorded pace. Markets need this, because Spacetime only takes current counts and future closes |
+| `--loop` | Replay: start over at the end, forever (implies `--realtime`) |
+| `--convex` / `--no-convex` | Send frames, counts, prices and alerts to the live map. On when `~/.config/balloon/convex.json` exists |
+| `--prod` | Convex: the production deployment (the public map) instead of dev |
+| `--spacetime` / `--no-spacetime` | Send counts, new markets and settlements to Spacetime. On when `~/.config/balloon/spacetime.json` exists |
+| `--convex-config`, `--spacetime-config` | Other config files, for example a throwaway Spacetime database |
+
+## Cloud
+
+Both cloud sinks queue and return at once, so a slow network never stalls the detector. If either backend is
+unreachable the station keeps running and logs a warning; the JSONL files are always complete.
+
+**Convex (live map).** `~/.config/balloon/convex.json` (chmod 600): the top level is the dev deployment, `"prod"` the
+production one, and `"patrol_code"` is the code patrol members type to confirm alerts.
+
+```json
+{"url": "https://<dev>.convex.cloud", "ingest_secret": "...", "patrol_code": "...",
+ "prod": {"url": "https://<prod>.convex.cloud", "ingest_secret": "..."}}
+```
+
+The station sends the site map once, then every frame (shrunk to 1280 px) with its observation, every pricing
+decision and every beach alert. Market decisions go to Spacetime only.
+
+**Spacetime (markets).** `~/.config/balloon/spacetime.json` (chmod 600, see `market/README.md`). Counts post as
+`post_observation` per zone and metric, only when the value changes or every 10 s: `car_count`, `person_count`,
+and `occupancy_pct` (0 to 100) per zone, plus `car_count` and `person_count` for the zone `whole-view`. The market
+agent has its own oracle identity, claimed with `oracle_secret` on first run and saved as `agent_token`. Each
+accepted proposal becomes `create_market` with the agent's one-sentence rationale as the last argument. At close
+plus 60 s the engine in `agents/markets.py` settles it (median of frames within 60 s, confidence at least 0.5, at
+least 3 frames) and the sink calls `settle` with that value and the explanation, or `void_market` when there are too
+few good frames.
+
+## Demo replay
+
+When the balloon can't fly, replay a recorded session through everything, looping, onto the public map and markets:
+
+```bash
+ground/demo.sh ~/balloon-data/20261024-153000              # site defaults to ground/sites/<session name>.json
+ground/demo.sh <session-dir> sites/marina.json --no-spacetime
+```
+
+It runs `station.py --replay <dir> --site <site> --agents --loop --prod` with the VisDrone weights from
+`ground/runs/visdrone/weights/best.pt` when they exist. The first market is proposed after 10 minutes of replay
+and settles after its close, so start it at least 45 minutes before you need a settled market on screen.
+
+Remove a replay's rows from the map afterwards (the market database has no delete; use a throwaway database
+with `--spacetime-config` for rehearsals):
+
+```bash
+cd web && npx convex run --prod admin:purgeSession '{"session": "<session name>"}'   # repeat until all counts are 0
+npx convex run --prod admin:purgeSite '{"site": "<site name>"}'
+```
+
+**Stand-in session.** Until we have a flight, `sites/visdrone-standin-0000356.json` maps a stand-in session: 10 real
+frames from the public VisDrone2019 val set, sequence 0000356 (a near-hovering view of a crossing with a small lot),
+which all align to one reference. To rebuild it, copy these val images in order into
+`ground/out/sessions/visdrone-standin-0000356/stills/` as `1792900000.000.jpg`, `1792900002.000.jpg`, and so on
+(2 s apart), and list them in `stills/index.csv` with `t_unix` set and the telemetry columns blank:
+
+```
+0000356_02353_d_0000641  0000356_02745_d_0000643  0000356_02941_d_0000644  0000356_03333_d_0000646  0000356_03529_d_0000647
+0000356_03725_d_0000648  0000356_03921_d_0000649  0000356_04117_d_0000650  0000356_04313_d_0000651  0000356_04705_d_0000653
+```
+
+It is not balloon data: there is no telemetry, and the street is in the VisDrone set, not San Francisco.
 
 ## Output
 
@@ -146,6 +212,5 @@ Image tests use real drone frames from the public VisDrone2019 val set, download
 
 ## Not built yet
 
-`ConvexSink` and `SpacetimeSink` in `sinks.py` are stubs that raise `NotImplementedError`. Markets on flows over
-a period ("people crossing between 4 and 5 PM") need a crossing counter; today's markets settle on counts at one
+Markets on flows over a period ("people crossing between 4 and 5 PM") need a crossing counter; today's markets settle on counts at one
 moment.

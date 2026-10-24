@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { BellSimple, Check, X } from "@phosphor-icons/react";
+import { BellSimple, Check, LockSimple, X } from "@phosphor-icons/react";
 import { api } from "../../convex/_generated/api";
 import type { Alert } from "../lib/data";
+import { usePatrolCode, WRONG_PATROL_CODE } from "../lib/patrol";
 import { ago, clock, useNow } from "../lib/time";
 import { Button, Caption, Card, Chip, EmptyState, type Tone } from "./ui";
 
@@ -12,25 +13,87 @@ const SEVERITY: Record<NonNullable<Alert["severity"]>, { tone: Tone; label: stri
   critical: { tone: "critical", label: "Critical" },
 };
 
-function errorText(e: unknown): string {
+function errorData(e: unknown): string | null {
   const data = (e as { data?: unknown }).data;
-  if (typeof data === "string") return data;
-  return "Could not save. Check your connection and try again.";
+  return typeof data === "string" ? data : null;
 }
 
-function OpenAlert({ alert, now }: { alert: Alert; now: number }) {
+type PatrolCodeFormProps = {
+  wasWrong: boolean;
+  onSave: (code: string) => void;
+};
+
+function PatrolCodeForm({ wasWrong, onSave }: PatrolCodeFormProps) {
+  const [value, setValue] = useState("");
+  const code = value.trim();
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (code) onSave(code);
+  }
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <h2 className="flex items-center gap-2 text-lg font-semibold">
+        <LockSimple size={20} aria-hidden="true" />
+        Patrol code
+      </h2>
+      <p className="max-w-[65ch] text-sm text-muted">
+        Anyone can read alerts. To confirm or dismiss one, enter the code your patrol lead gave you. This phone
+        remembers it.
+      </p>
+      <form onSubmit={handleSubmit} className="flex flex-wrap gap-2">
+        <label htmlFor="patrol-code" className="sr-only">
+          Patrol code
+        </label>
+        <input
+          id="patrol-code"
+          type="password"
+          autoComplete="off"
+          autoFocus={wasWrong}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          className="min-h-11 min-w-0 flex-1 rounded-full bg-surface-2 px-4 font-mono text-sm"
+          aria-invalid={wasWrong}
+          aria-describedby={wasWrong ? "patrol-code-error" : undefined}
+        />
+        <Button type="submit" variant="primary" disabled={!code}>
+          Save code
+        </Button>
+      </form>
+      {wasWrong && (
+        <p id="patrol-code-error" role="alert" className="text-sm text-critical">
+          That code didn't work. Check it with your patrol lead and enter it again.
+        </p>
+      )}
+    </Card>
+  );
+}
+
+type OpenAlertProps = {
+  alert: Alert;
+  now: number;
+  code: string | null;
+  onWrongCode: () => void;
+};
+
+function OpenAlert({ alert, now, code, onWrongCode }: OpenAlertProps) {
   const review = useMutation(api.alerts.review);
   const [busy, setBusy] = useState<"confirmed" | "dismissed" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const sev = SEVERITY[alert.severity ?? "warning"];
+  const isLocked = busy !== null || !code;
 
   async function handleReview(decision: "confirmed" | "dismissed") {
+    if (!code) return;
     setBusy(decision);
     setError(null);
     try {
-      await review({ id: alert._id, decision });
+      await review({ id: alert._id, decision, code });
     } catch (e) {
-      setError(errorText(e));
+      const data = errorData(e);
+      if (data === WRONG_PATROL_CODE) onWrongCode();
+      else setError(data ?? "Could not save. Check your connection and try again.");
     } finally {
       setBusy(null);
     }
@@ -61,11 +124,11 @@ function OpenAlert({ alert, now }: { alert: Alert; now: number }) {
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button variant="primary" onClick={() => handleReview("confirmed")} disabled={busy !== null}>
+        <Button variant="primary" onClick={() => handleReview("confirmed")} disabled={isLocked}>
           <Check size={16} weight="bold" aria-hidden="true" />
           {busy === "confirmed" ? "Confirming…" : "Confirm alert"}
         </Button>
-        <Button onClick={() => handleReview("dismissed")} disabled={busy !== null}>
+        <Button onClick={() => handleReview("dismissed")} disabled={isLocked}>
           <X size={16} weight="bold" aria-hidden="true" />
           {busy === "dismissed" ? "Dismissing…" : "Dismiss"}
         </Button>
@@ -91,7 +154,19 @@ function ReviewedAlert({ alert }: { alert: Alert }) {
 export function AlertsView() {
   const alerts = useQuery(api.live.alerts);
   const now = useNow();
+  const patrol = usePatrolCode();
+  const [wasWrong, setWasWrong] = useState(false);
   if (alerts === undefined) return <Caption>Loading alerts…</Caption>;
+
+  function handleSaveCode(code: string) {
+    setWasWrong(false);
+    patrol.save(code);
+  }
+
+  function handleWrongCode() {
+    setWasWrong(true);
+    patrol.forget();
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -108,8 +183,9 @@ export function AlertsView() {
         </EmptyState>
       ) : (
         <div className="flex flex-col gap-3">
+          {!patrol.code && <PatrolCodeForm wasWrong={wasWrong} onSave={handleSaveCode} />}
           {alerts.open.map((a) => (
-            <OpenAlert key={a._id} alert={a} now={now} />
+            <OpenAlert key={a._id} alert={a} now={now} code={patrol.code} onWrongCode={handleWrongCode} />
           ))}
         </div>
       )}

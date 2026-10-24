@@ -3,4 +3,5 @@
 anthropic==2.3.0
 python-dotenv==1.2.4
 requests==2.34.2
+convex==0.8.1
 pytest==9.1.1

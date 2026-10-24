@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { CaretDown, TrendDown, TrendUp, Pause } from "@phosphor-icons/react";
 import type { Decision, Lot, LotState } from "../lib/data";
 import { money } from "../lib/data";
@@ -11,6 +12,7 @@ type Props = {
 };
 
 const SPARK_W = 120;
+const DECISIONS_SHOWN = 5;
 const SPARK_H = 36;
 
 function Sparkline({ values }: { values: number[] }) {
@@ -65,6 +67,34 @@ function DecisionRow({ d }: { d: Decision }) {
   );
 }
 
+function DecisionLog({ decisions }: { decisions: Decision[] }) {
+  const [isShowingAll, setIsShowingAll] = useState(false);
+  const shown = isShowingAll ? decisions : decisions.slice(0, DECISIONS_SHOWN);
+  const hidden = decisions.length - shown.length;
+  return (
+    <details className="group">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+        <CaretDown size={16} className="transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" />
+        Why did the price change?
+      </summary>
+      <ol className="mt-2 flex flex-col gap-2">
+        {shown.map((d) => (
+          <DecisionRow key={d._id} d={d} />
+        ))}
+      </ol>
+      {hidden > 0 && (
+        <button
+          type="button"
+          onClick={() => setIsShowingAll(true)}
+          className="press mt-2 inline-flex min-h-11 items-center rounded-full bg-surface-2 px-4 text-sm font-semibold hover:bg-hairline"
+        >
+          Show all {decisions.length} decisions
+        </button>
+      )}
+    </details>
+  );
+}
+
 export function LotCard({ lot, state, isUnreliable }: Props) {
   const prices = lot.prices.map((p) => p.price);
   const current = lot.prices[lot.prices.length - 1];
@@ -105,19 +135,7 @@ export function LotCard({ lot, state, isUnreliable }: Props) {
         <Sparkline values={prices} />
       </div>
 
-      {lot.decisions.length > 0 && (
-        <details className="group">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
-            <CaretDown size={16} className="transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" />
-            Why did the price change?
-          </summary>
-          <ol className="mt-2 flex flex-col gap-2">
-            {lot.decisions.map((d) => (
-              <DecisionRow key={d._id} d={d} />
-            ))}
-          </ol>
-        </details>
-      )}
+      {lot.decisions.length > 0 && <DecisionLog decisions={lot.decisions} />}
     </Card>
   );
 }

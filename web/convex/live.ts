@@ -2,7 +2,7 @@ import { query, type QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 
 const PRICE_POINTS = 30;
-const DECISIONS_PER_LOT = 8;
+const DECISIONS_PER_LOT = 50;
 const OPEN_ALERTS = 20;
 const REVIEWED_ALERTS = 6;
 

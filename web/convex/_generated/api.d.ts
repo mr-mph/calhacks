@@ -8,9 +8,11 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
 import type * as alerts from "../alerts.js";
 import type * as ingest from "../ingest.js";
 import type * as live from "../live.js";
+import type * as secrets from "../secrets.js";
 import type * as validators from "../validators.js";
 
 import type {
@@ -20,9 +22,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   alerts: typeof alerts;
   ingest: typeof ingest;
   live: typeof live;
+  secrets: typeof secrets;
   validators: typeof validators;
 }>;
 

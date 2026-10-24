@@ -101,5 +101,9 @@ ssh tarun@balloon.local journalctl -fu balloon-telemetry
 - 2026-10-24 afternoon: pivot to tethered observation and prize plan recorded in `CONTEXT.md` section 5; full track
   reference in `docs/tracks.md`. Repo checked end to end in sim mode (all routes, dashboard with no JS errors, driver
   tests, shellcheck). Not built yet: detector, live map, market, agents, Claude alert writer.
+- 2026-10-24 evening (branch `integration`): station sends to Convex (`--prod` for the public map) and Spacetime
+  markets; `ground/demo.sh <session>` replays a session through everything (see `ground/STATION.md`). Live map
+  https://overhead-live.vercel.app, markets https://overhead-market.vercel.app. Alert review needs the patrol code
+  (`patrol_code` in ~/.config/balloon/convex.json on the station laptop).
 - Ideas not started: metre scale bar on the mosaic (footprint = 2*h*tan(FOV/2)), tilt-rectified stills,
   Claude-vision captions from snapshots (laptop side), ESP32 tether-length encoder, servo pan (code exists, off).

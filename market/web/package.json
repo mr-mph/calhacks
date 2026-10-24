@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host",
-    "dev:cloud": "vite --host --mode production",
+    "dev": "vite --host --port 5174",
+    "dev:cloud": "vite --host --port 5174 --mode production",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "generate": "spacetime generate --lang typescript --out-dir src/module_bindings --module-path ../server"

@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from sinks import ConvexSink, JsonlSink, MultiSink, SpacetimeSink
+from sinks import JsonlSink, MultiSink
 
 
 def read_lines(path):
@@ -48,8 +48,3 @@ def test_multi_sink_fans_out(tmp_path):
     multi.close()
     assert read_lines(tmp_path / "a" / "s" / "alerts.jsonl") == read_lines(tmp_path / "b" / "s" / "alerts.jsonl")
 
-
-@pytest.mark.parametrize("cls", [ConvexSink, SpacetimeSink])
-def test_cloud_sinks_are_explicit_stubs(cls):
-    with pytest.raises(NotImplementedError):
-        cls().write("observations", {})

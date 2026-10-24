@@ -1,12 +1,17 @@
 import { ConvexError, v } from "convex/values";
 import { mutation } from "./_generated/server";
+import { requireEnvSecret } from "./secrets";
+
+const WRONG_PATROL_CODE = "Wrong patrol code";
 
 export const review = mutation({
   args: {
     id: v.id("alerts"),
     decision: v.union(v.literal("confirmed"), v.literal("dismissed")),
+    code: v.string(),
   },
-  handler: async (ctx, { id, decision }) => {
+  handler: async (ctx, { id, decision, code }) => {
+    requireEnvSecret("PATROL_CODE", code, WRONG_PATROL_CODE);
     const alert = await ctx.db.get(id);
     if (!alert) throw new ConvexError("This alert no longer exists");
     if (alert.status !== "needs_review") {
