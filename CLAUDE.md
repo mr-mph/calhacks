@@ -108,6 +108,6 @@ ssh tarun@balloon.local journalctl -fu balloon-telemetry
 - 2026-10-24 evening: Jira app "Balloon Patrol" (`atlassian/`) deployed and installed on
   one-atlas-dqcx.atlassian.net (Jira + Confluence); smoke test: create, dedupe, low-confidence queue, injection flagged.
   Station credentials in ~/.config/balloon/forge.json. Still open: the real Pi flight (hardware in SF), rip-current
-  model training (queued after VisDrone), Devpost draft in `docs/devpost.md`.
+  model training (queued after VisDrone). **Devpost project not created yet** (do it Saturday night; text in `docs/devpost.md`).
 - Ideas not started: metre scale bar on the mosaic (footprint = 2*h*tan(FOV/2)), tilt-rectified stills,
   Claude-vision captions from snapshots (laptop side), ESP32 tether-length encoder, servo pan (code exists, off).
