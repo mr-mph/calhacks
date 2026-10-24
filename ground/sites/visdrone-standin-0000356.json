@@ -1,0 +1,86 @@
+{
+  "site": "visdrone-standin-0000356",
+  "reference_frame": "stills/1792900010.000.jpg",
+  "zones": [
+    {
+      "id": "lot-a",
+      "kind": "lot",
+      "capacity": 18,
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          340,
+          0
+        ],
+        [
+          360,
+          100
+        ],
+        [
+          330,
+          175
+        ],
+        [
+          0,
+          190
+        ]
+      ]
+    },
+    {
+      "id": "crosswalk-north",
+      "kind": "crossing",
+      "polygon": [
+        [
+          0,
+          195
+        ],
+        [
+          740,
+          115
+        ],
+        [
+          770,
+          165
+        ],
+        [
+          0,
+          245
+        ]
+      ]
+    },
+    {
+      "id": "crosswalk-south",
+      "kind": "crossing",
+      "polygon": [
+        [
+          0,
+          690
+        ],
+        [
+          880,
+          470
+        ],
+        [
+          1360,
+          370
+        ],
+        [
+          1360,
+          500
+        ],
+        [
+          900,
+          640
+        ],
+        [
+          0,
+          765
+        ]
+      ]
+    }
+  ],
+  "spaces": []
+}
