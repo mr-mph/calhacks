@@ -1,0 +1,62 @@
+modules:
+  webtrigger:
+    - key: ingest-alert
+      function: ingest
+      urlFormat: v2
+      response:
+        type: dynamic
+
+  scheduledTrigger:
+    - key: shift-report-daily
+      function: shiftReport
+      interval: day
+
+  jira:adminPage:
+    - key: balloon-patrol-admin
+      resource: admin
+      resolver:
+        function: resolver
+      render: native
+      title: Balloon Patrol
+
+  jira:issuePanel:
+    - key: balloon-patrol-panel
+      resource: panel
+      resolver:
+        function: resolver
+      render: native
+      title: Balloon Patrol agent log
+      icon: https://developer.atlassian.com/platform/forge/images/icons/issue-panel-icon.svg
+
+  function:
+    - key: ingest
+      handler: index.ingest
+    - key: shiftReport
+      handler: index.shiftReport
+      timeoutSeconds: 120
+    - key: resolver
+      handler: index.resolver
+
+resources:
+  - key: admin
+    path: src/frontend/admin.tsx
+  - key: panel
+    path: src/frontend/panel.tsx
+
+permissions:
+  scopes:
+    - storage:app
+    - read:jira-work
+    - write:jira-work
+    - read:jira-user
+    - manage:jira-project
+    - manage:jira-configuration
+    - read:space:confluence
+    - read:page:confluence
+    - write:page:confluence
+
+app:
+  runtime:
+    name: nodejs24.x
+    memoryMB: 256
+    architecture: arm64
