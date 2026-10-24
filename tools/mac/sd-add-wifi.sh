@@ -1,24 +1,27 @@
 #!/bin/bash
 # Add a Wi-Fi network (e.g. the phone hotspot) to the Pi's first-boot network config and make it apply on next boot.
 # Run on the Mac with the SD card in the reader:
-#     ./tools/mac/sd-add-wifi.sh "Hotspot Name" "hotspot password"
-# Keeps any networks already configured. Idempotent for the same SSID.
+#     ./tools/mac/sd-add-wifi.sh "Hotspot Name" "hotspot password"            # add, keep others
+#     ./tools/mac/sd-add-wifi.sh "Hotspot Name" "hotspot password" --only     # add and REMOVE all other Wi-Fi networks
+# Idempotent for the same SSID.
 set -euo pipefail
 SSID="${1:?usage: $0 SSID PASSWORD}"; PASS="${2:?usage: $0 SSID PASSWORD}"
 BOOT=""; for d in /Volumes/bootfs /Volumes/boot; do [ -f "$d/network-config" ] && BOOT="$d" && break; done
 [ -z "$BOOT" ] && { echo "SD boot partition not mounted" >&2; exit 1; }
-SSID="$SSID" PASS="$PASS" python3 - "$BOOT/network-config" <<'PY'
+ONLY="${3:-}"
+SSID="$SSID" PASS="$PASS" ONLY="$ONLY" python3 - "$BOOT/network-config" <<'PY'
 import os, sys, yaml
-p = sys.argv[1]; ssid = os.environ["SSID"]; pw = os.environ["PASS"]
+p = sys.argv[1]; ssid = os.environ["SSID"]; pw = os.environ["PASS"]; only = os.environ.get("ONLY") == "--only"
 cfg = yaml.safe_load(open(p)) or {"network": {"version": 2}}
 net = cfg.setdefault("network", {}); net.setdefault("version", 2)
 wl = net.setdefault("wifis", {}).setdefault("wlan0", {"dhcp4": True, "optional": True})
 wl.setdefault("dhcp4", True); wl["optional"] = True
 aps = wl.setdefault("access-points", {})
+if only:
+    aps.clear()
 aps[ssid] = {"password": pw}
 # hotspot first: cloud-init/NM connects to whichever is in range; both stay configured
-eth = net.setdefault("ethernets", {})
-eth.setdefault("usb0", {"dhcp4": True, "dhcp6": False, "optional": True})
+net.setdefault("ethernets", {})
 yaml.safe_dump(cfg, open(p, "w"), default_flow_style=False, sort_keys=False)
 print("network-config: wifi networks now:", list(aps.keys()))
 PY
