@@ -3,7 +3,6 @@ import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { AlertsView } from "./components/AlertsView";
 import { LiveView } from "./components/LiveView";
-import { MarketsView } from "./components/MarketsView";
 import { BottomTabs, TopBar, type Tab } from "./components/Nav";
 
 function subscribeHash(cb: () => void): () => void {
@@ -13,7 +12,7 @@ function subscribeHash(cb: () => void): () => void {
 
 function currentTab(): Tab {
   const id = window.location.hash.replace(/^#\/?/, "");
-  return id === "markets" || id === "alerts" ? id : "live";
+  return id === "alerts" ? id : "live";
 }
 
 export default function App() {
@@ -26,7 +25,6 @@ export default function App() {
       <TopBar tab={tab} openAlerts={openAlerts} />
       <main className="mx-auto max-w-7xl px-4 pt-4 pb-28 md:pb-12">
         {tab === "live" && <LiveView openAlerts={openAlerts} />}
-        {tab === "markets" && <MarketsView />}
         {tab === "alerts" && <AlertsView />}
       </main>
       <BottomTabs tab={tab} openAlerts={openAlerts} />
