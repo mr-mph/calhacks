@@ -1,7 +1,10 @@
 """Ground station loop: stills from the Pi (live) or a session folder (replay) -> observations -> sinks and agents.
 
     python station.py --replay ~/balloon-data/20261024-153000 --site sites/marina.json --agents
-    python station.py --pi http://balloon.local:8080 --site sites/marina.json --agents
+    python station.py --pi http://balloon.local:8080 --site sites/marina.json --agents --prod
+
+Convex (live map) and Spacetime (markets) are on whenever their config file exists; --no-convex / --no-spacetime
+turn them off.
 """
 import argparse
 import csv
@@ -11,8 +14,8 @@ import re
 import sys
 import time
 from collections import deque
-from collections.abc import Iterator
-from dataclasses import dataclass
+from collections.abc import Callable, Iterator
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import cv2
@@ -21,7 +24,9 @@ import requests
 
 from align import Aligner
 from observe import STABILITY_FRAMES, build_observation, load_site, resolve_reference
-from sinks import JsonlSink
+import convex_sink
+import spacetime_sink
+from sinks import JsonlSink, Sink
 
 log = logging.getLogger("station")
 
@@ -30,6 +35,7 @@ DEFAULT_OUT = HERE / "out"
 HISTORY_FRAMES = 3600
 FIRST_PROPOSAL_S = 600.0
 HTTP_TIMEOUT_S = 5.0
+LOOP_GAP_S = 2.0
 SESSION_NAME = re.compile(r"[\w-]+")
 STILL_NAME = re.compile(r"\w[\w.-]*\.jpe?g")
 
@@ -72,6 +78,22 @@ def replay_stills(session_dir: Path, every: int = 1) -> Iterator[Still]:
         path = session_dir / "stills" / row["file"]
         if path.is_file():
             yield _still(session_dir.name, row, path.read_bytes())
+
+
+def paced_replay(session_dir: Path, every: int = 1, loop: bool = False, clock: Callable[[], float] = time.time,
+                 sleep: Callable[[float], None] = time.sleep) -> Iterator[Still]:
+    """Replays a session as if it were live: timestamps shift so the first still is now, and each still is released
+    at its shifted time. Spacetime only accepts current timestamps and market closes in the future."""
+    while True:
+        start, shift = clock(), None
+        for still in replay_stills(session_dir, every):
+            shift = start - still.t if shift is None else shift
+            t = still.t + shift
+            sleep(max(0.0, t - clock()))
+            yield replace(still, t=t)
+        if not loop or shift is None:
+            return
+        sleep(LOOP_GAP_S)
 
 
 class PiSource:
@@ -148,13 +170,18 @@ class Agents:
 
 
 class Station:
+    """One session. Cloud sinks outlive it (they are shared across sessions), so close() only closes the JSONL."""
+
     def __init__(self, detector, site: dict | None, aligner: Aligner | None, out_root: Path, session: str,
-                 agents: Agents | None):
+                 agents: Agents | None, cloud: list[Sink] | None = None,
+                 convex: convex_sink.ConvexSink | None = None):
         self.detector = detector
         self.site = site
         self.aligner = aligner
         self.session = session
         self.sink = JsonlSink(out_root, session)
+        self.cloud = cloud or []
+        self.convex = convex
         self.agents = agents
         self.history: deque = deque(maxlen=HISTORY_FRAMES)
         self.recent_counts: deque = deque(maxlen=STABILITY_FRAMES)
@@ -171,24 +198,30 @@ class Station:
                                 site=self.site, alignment=alignment, history=list(self.recent_counts))
         self.recent_counts.append(obs["counts"])
         self.history.append(obs)
-        self.sink.write("observations", obs)
+        if self.convex:
+            self.convex.upload_frame(still.jpeg, still.session, still.t, (image.shape[1], image.shape[0]),
+                                     name=obs["frame"])
+        self._write("observations", obs)
         if self.agents:
             decisions, alerts = self.agents.run(obs, detections, image, self.history)
             for record in decisions:
-                self.sink.write("decisions", record)
+                self._write("decisions", record)
             for record in alerts:
-                self.sink.write("alerts", record)
+                self._write("alerts", record)
         log.info("%s cars=%d people=%d aligned=%s conf=%.2f", still.file, obs["counts"]["car"],
                  obs["counts"]["person"], obs["aligned"], obs["confidence"])
         return obs
+
+    def _write(self, kind: str, record: dict) -> None:
+        self.sink.write(kind, record)
+        for sink in self.cloud:
+            sink.write(kind, record)
 
     def close(self) -> None:
         self.sink.close()
 
 
-def make_aligner(site: dict | None, site_path: Path | None, session_dir: Path | None, mode: str) -> Aligner | None:
-    if not site:
-        return None
+def load_reference(site: dict, site_path: Path, session_dir: Path | None) -> np.ndarray:
     ref = resolve_reference(site, site_path, session_dir)
     if ref is None:
         raise SystemExit(f"reference frame {site.get('reference_frame')!r} not found next to {site_path} "
@@ -196,7 +229,36 @@ def make_aligner(site: dict | None, site_path: Path | None, session_dir: Path | 
     image = cv2.imread(str(ref))
     if image is None:
         raise SystemExit(f"reference frame {ref} is not a readable image")
-    return Aligner(image, mode=mode)
+    return image
+
+
+def make_convex(args: argparse.Namespace, site: dict | None, reference: np.ndarray | None):
+    env = "prod" if args.prod else "dev"
+    try:
+        sink = convex_sink.ConvexSink(args.convex_config, env=env)
+    except (OSError, ValueError) as e:
+        raise SystemExit(f"Convex: {e}") from e
+    if site:
+        size = (reference.shape[1], reference.shape[0]) if reference is not None else None
+        sink.set_site(convex_sink.convex_site(site, size))
+    log.info("convex: sending to the %s deployment", env)
+    return sink
+
+
+def make_spacetime(args: argparse.Namespace) -> spacetime_sink.SpacetimeSink:
+    try:
+        sink = spacetime_sink.SpacetimeSink.from_config(args.spacetime_config)
+    except (OSError, ValueError, KeyError, spacetime_sink.SpacetimeRejected) as e:
+        raise SystemExit(f"Spacetime: {e}") from e
+    log.info("spacetime: sending to %s", sink.station.database)
+    return sink
+
+
+def resolve_cloud_flags(args: argparse.Namespace) -> argparse.Namespace:
+    """--convex / --spacetime default to on exactly when their config file exists."""
+    convex = args.convex_config.is_file() if args.convex is None else args.convex
+    spacetime = args.spacetime_config.is_file() if args.spacetime is None else args.spacetime
+    return argparse.Namespace(**{**vars(args), "convex": convex, "spacetime": spacetime})
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -208,11 +270,27 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT, help="output root (default ground/out)")
     ap.add_argument("--weights", help="YOLO weights (default $BALLOON_WEIGHTS or yolo11n.pt)")
     ap.add_argument("--every", type=int, default=1, help="replay: process every Nth still")
+    ap.add_argument("--realtime", action="store_true",
+                    help="replay: shift timestamps to now and play at the recorded pace (needed for markets)")
+    ap.add_argument("--loop", action="store_true", help="replay: start over at the end (implies --realtime)")
     ap.add_argument("--agents", action="store_true", help="run pricing, market and alert agents")
     ap.add_argument("--market-every", type=float, default=30.0, help="minutes between market proposals")
     ap.add_argument("--poll", type=float, default=2.0, help="live: seconds between polls")
     ap.add_argument("--align-mode", choices=("similarity", "homography"), default="similarity")
-    return ap.parse_args(argv)
+    ap.add_argument("--convex", action=argparse.BooleanOptionalAction, help="send to the Convex live map")
+    ap.add_argument("--prod", action="store_true", help="Convex: the production deployment instead of dev")
+    ap.add_argument("--convex-config", type=Path, default=convex_sink.CONFIG_PATH)
+    ap.add_argument("--spacetime", action=argparse.BooleanOptionalAction, help="send to the Spacetime markets")
+    ap.add_argument("--spacetime-config", type=Path, default=spacetime_sink.CONFIG_PATH)
+    return resolve_cloud_flags(ap.parse_args(argv))
+
+
+def still_source(args: argparse.Namespace) -> Iterator[Still]:
+    if args.pi:
+        return iter(PiSource(args.pi, args.poll))
+    if args.realtime or args.loop:
+        return paced_replay(args.replay, args.every, args.loop)
+    return replay_stills(args.replay, args.every)
 
 
 def main(argv: list[str]) -> None:
@@ -223,20 +301,22 @@ def main(argv: list[str]) -> None:
     from infer import Detector
 
     site = load_site(args.site) if args.site else None
-    aligner = make_aligner(site, args.site, args.replay, args.align_mode)
+    reference = load_reference(site, args.site, args.replay) if site else None
+    aligner = Aligner(reference, mode=args.align_mode) if reference is not None else None
     detector = Detector(args.weights)
     log.info("detector %s on %s", detector.name, detector.device)
-    stills = replay_stills(args.replay, args.every) if args.replay else iter(PiSource(args.pi, args.poll))
+    convex = make_convex(args, site, reference) if args.convex else None
+    cloud: list[Sink] = [s for s in (convex, make_spacetime(args) if args.spacetime else None) if s]
     station = None
     try:
-        for still in stills:
+        for still in still_source(args):
             if station is None or station.session != still.session:
                 if station:
                     station.close()
                 agents = Agents(args.out, still.session, site, args.market_every * 60) if args.agents else None
                 if agents:
                     log.info("agents: %s", agents.claude.mode)
-                station = Station(detector, site, aligner, args.out, still.session, agents)
+                station = Station(detector, site, aligner, args.out, still.session, agents, cloud, convex)
             station.process(still)
     except KeyboardInterrupt:
         log.info("stopped")
@@ -244,6 +324,8 @@ def main(argv: list[str]) -> None:
         if station:
             station.close()
             log.info("wrote %s", station.sink.dir)
+        for sink in cloud:
+            sink.close()
 
 
 if __name__ == "__main__":

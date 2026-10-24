@@ -73,7 +73,8 @@ def test_replay_end_to_end(tmp_path, real_images, detector, monkeypatch):
     site_path = tmp_path / "street.json"
     site_path.write_text(json.dumps(site))
     out = tmp_path / "out"
-    station.main(["--replay", str(session), "--site", str(site_path), "--out", str(out), "--agents"])
+    station.main(["--replay", str(session), "--site", str(site_path), "--out", str(out), "--agents",
+                  "--no-convex", "--no-spacetime"])
     lines = (out / session.name / "observations.jsonl").read_text().splitlines()
     records = [json.loads(line) for line in lines]
     assert len(records) == 3
