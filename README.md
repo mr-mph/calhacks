@@ -1,5 +1,7 @@
 # CalHacks balloon payload
 
+Contributors (people or AI agents): read **CLAUDE.md** first for architecture, conventions, and how to test without hardware.
+
 Tethered helium-balloon payload on a Raspberry Pi 4 + Grove Base Hat + Logitech USB webcam.
 The Pi logs every sensor and the camera to its SD card no matter what, and serves a live dashboard
 (video + real-time charts) to any phone or laptop on the same Wi-Fi (or over the USB-C cable).
