@@ -1,4 +1,4 @@
-"""Where observations, decisions and alerts go. JSONL on disk now; Convex and Spacetime later."""
+"""Where observations, decisions and alerts go: JSONL on disk here; convex_sink.py and spacetime_sink.py for the cloud."""
 import json
 from pathlib import Path
 from typing import IO, Protocol
@@ -36,27 +36,6 @@ class JsonlSink:
         for f in self._files.values():
             f.close()
         self._files = {}
-
-
-class ConvexSink:
-    """TODO: push observations to Convex `observations`, prices and decisions to `prices`/`decisions`,
-    alerts to `alerts` (see docs/architecture.md section 4). Needs `npx convex login` and the deployment URL."""
-
-    def write(self, kind: str, record: dict) -> None:
-        raise NotImplementedError("ConvexSink is not built yet")
-
-    def close(self) -> None:
-        raise NotImplementedError("ConvexSink is not built yet")
-
-
-class SpacetimeSink:
-    """TODO: post settlement values and market proposals to the Spacetime market module (market/)."""
-
-    def write(self, kind: str, record: dict) -> None:
-        raise NotImplementedError("SpacetimeSink is not built yet")
-
-    def close(self) -> None:
-        raise NotImplementedError("SpacetimeSink is not built yet")
 
 
 class MultiSink:
