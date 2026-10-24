@@ -44,7 +44,8 @@ A laptop ground station turns each frame into counts, and three groups use them:
 - **Balloon payload:** Raspberry Pi 4, Logitech webcam, Grove barometer and accelerometer, on a power bank. The Pi
   records stills, video and sensors to its SD card no matter what, and serves a dashboard.
 - **Detection:** YOLO11n fine-tuned on VisDrone2019 (real drone imagery, 6,471 training images) for cars and people,
-  reaching mAP50 of about 0.30 on held-out images. A separate oriented-box model is trained on RipAID (2,186 images,
+  reaching mAP50 0.72 for cars and 0.31 for pedestrians on the held-out VisDrone set (people are only a few pixels
+  tall from above, so we count them and never try to identify anyone). A separate oriented-box model is trained on RipAID (2,186 images,
   CC BY 4.0), validated on two beach cameras it never saw in training. [Rip model mAP once trained.] [Then fine-tuned
   again on frames from our own flight.]
 - **Ground station:** aligns every frame to a reference map of the site (ORB features and RANSAC), so drawn parking

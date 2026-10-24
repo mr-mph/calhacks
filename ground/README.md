@@ -54,9 +54,21 @@ The val command prints per-class mAP50; read the `car` and `pedestrian`/`people`
 
 ### Metrics
 
-Training had not finished when this was written. After epoch 1 of 50 (`runs/visdrone/results.csv`), all-class
-val mAP50 was 0.107 and mAP50-95 0.054. Per-class car and person mAP50 come from the val command above once the
-run ends; update this section with them.
+Final run: 50 epochs, YOLO11n, 640 px, VisDrone2019-DET val (548 images, 38,759 boxes), weights at
+`runs/visdrone/weights/best.pt` (5.4 MB, gitignored; copy it from the training Mac). Validation results:
+
+| Class | mAP50 | mAP50-95 |
+|---|---|---|
+| car | 0.721 | 0.475 |
+| van | 0.333 | 0.225 |
+| bus | 0.414 | 0.282 |
+| truck | 0.282 | 0.180 |
+| pedestrian | 0.310 | 0.126 |
+| people | 0.226 | 0.077 |
+| all 10 classes | 0.293 | 0.166 |
+
+Cars are the reliable class. People are only a few pixels tall from above, so person counts are approximate and the
+alerts say so. Inference: 5 ms per image on an M5 Pro (MPS).
 
 ## Detection
 
