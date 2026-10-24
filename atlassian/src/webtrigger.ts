@@ -1,6 +1,7 @@
 import type { WebTriggerRequest, WebTriggerResponse } from "@forge/api";
 import { handleAlert } from "./agent";
 import { MAX_BODY_BYTES, parseAlert } from "./domain/alert";
+import { ACCOUNT_ID } from "./domain/roster";
 import { ScopeError } from "./domain/scope";
 import { header, SECRET_HEADER, secretMatches } from "./domain/secret";
 import { AGENT, type Deps } from "./ports";
@@ -36,8 +37,15 @@ async function ingest(raw: string): Promise<WebTriggerResponse> {
 }
 
 async function bootstrap(raw: string): Promise<WebTriggerResponse> {
-  const body = JSON.parse(raw) as { lead_account_id?: unknown; roster?: unknown };
-  if (typeof body.lead_account_id !== "string") return respond(400, { error: "lead_account_id is required" });
+  let body: { lead_account_id?: unknown; roster?: unknown };
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return respond(400, { error: "body must be JSON" });
+  }
+  if (typeof body.lead_account_id !== "string" || !ACCOUNT_ID.test(body.lead_account_id)) {
+    return respond(400, { error: "lead_account_id must be an Atlassian account id" });
+  }
   const project = await ensureProject(body.lead_account_id, "station");
   const roster = body.roster === undefined ? undefined : await saveRoster(body.roster, "station");
   return respond(200, { project, roster });
@@ -55,6 +63,6 @@ export async function handleWebTrigger(request: WebTriggerRequest): Promise<WebT
     return action === "bootstrap" ? await bootstrap(raw) : await ingest(raw);
   } catch (err) {
     console.error("Web trigger failed", err);
-    return respond(500, { error: (err as Error).message.slice(0, 200) });
+    return respond(500, { error: "Internal error; see the app logs (forge logs)" });
   }
 }

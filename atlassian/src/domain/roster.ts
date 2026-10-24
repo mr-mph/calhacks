@@ -1,6 +1,6 @@
 export const SHIFT_TIME_ZONE = "America/Los_Angeles";
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
-const ACCOUNT_ID = /^[A-Za-z0-9:-]{1,128}$/;
+export const ACCOUNT_ID = /^[A-Za-z0-9:-]{1,128}$/;
 const MAX_ROSTER = 50;
 
 export interface RosterEntry {

@@ -88,6 +88,8 @@ async function create(deps: Deps, alert: Alert, plan: Plans<"create">, promotedB
     priority: plan.severity.priority,
     labels: plan.labels,
   });
+  // Recorded before the follow-up calls so a station retry after a partial failure can't open a second issue.
+  await deps.store.setAlert({ alertId: alert.alertId, outcome: "created", issueKey, missingFrame: plan.missingFrame });
   const why = promotedBy ? `Promoted from the review queue by ${promotedBy}. ` : "";
   await audit(deps, alert, {
     action: "create",
@@ -107,7 +109,6 @@ async function create(deps: Deps, alert: Alert, plan: Plans<"create">, promotedB
   }
   if (plan.missingFrame) await requestFrame(deps, alert, issueKey);
   await deps.store.setZone(alert.zone, { issueKey, priority: plan.severity.priority, lastAlertAt: deps.now().getTime() });
-  await deps.store.setAlert({ alertId: alert.alertId, outcome: "created", issueKey, missingFrame: plan.missingFrame });
   const assigned = plan.assignee ? `assigned to ${plan.assignee.name}` : `unassigned (${plan.assignReason.toLowerCase()})`;
   return outcome(plan, { outcome: "created", issueKey, reason: `Created ${issueKey}, ${plan.severity.priority}, ${assigned}` });
 }
