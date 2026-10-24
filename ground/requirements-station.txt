@@ -1,0 +1,6 @@
+# Station + agents: the detector stack plus these. Laptop only (not the Pi).
+-r requirements.txt
+anthropic==2.3.0
+python-dotenv==1.2.4
+requests==2.34.2
+pytest==9.1.1

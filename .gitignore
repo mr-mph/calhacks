@@ -13,3 +13,4 @@ ground/runs/
 ground/datasets/
 *.pt
 ground/runs-rip-queue.log
+ground/out/
