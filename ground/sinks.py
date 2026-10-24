@@ -16,6 +16,8 @@ class JsonlSink:
     """ground/out/<session>/{observations,decisions,alerts}.jsonl, appended one record per line."""
 
     def __init__(self, out_root: str | Path, session: str):
+        if session in ("", ".", "..") or Path(session).name != session:
+            raise ValueError(f"session must be a plain folder name, got {session!r}")
         self.dir = Path(out_root) / session
         self.dir.mkdir(parents=True, exist_ok=True)
         self._files: dict[str, IO[str]] = {}

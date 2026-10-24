@@ -7,6 +7,7 @@ import argparse
 import csv
 import io
 import logging
+import re
 import sys
 import time
 from collections import deque
@@ -29,6 +30,8 @@ DEFAULT_OUT = HERE / "out"
 HISTORY_FRAMES = 3600
 FIRST_PROPOSAL_S = 600.0
 HTTP_TIMEOUT_S = 5.0
+SESSION_NAME = re.compile(r"[\w-]+")
+STILL_NAME = re.compile(r"\w[\w.-]*\.jpe?g")
 
 
 @dataclass(frozen=True)
@@ -48,8 +51,13 @@ def _num(value: str | None) -> float | None:
         return None
 
 
+def _valid_row(row: dict) -> bool:
+    return bool(STILL_NAME.fullmatch(row.get("file") or "")) and _num(row.get("t_unix")) is not None
+
+
 def parse_index(text: str) -> list[dict]:
-    return [row for row in csv.DictReader(io.StringIO(text)) if row.get("file")]
+    """Rows with a plain still file name and a timestamp; anything else (including path tricks) is dropped."""
+    return [row for row in csv.DictReader(io.StringIO(text)) if _valid_row(row)]
 
 
 def _still(session: str, row: dict, jpeg: bytes) -> Still:
@@ -91,6 +99,9 @@ class PiSource:
         while True:
             try:
                 current = self._get("/api/status").json().get("session")
+                if current and not SESSION_NAME.fullmatch(current):
+                    log.warning("ignoring unexpected session name from the Pi")
+                    current = None
                 if current != session:
                     session, seen = current, set()
                     log.info("Pi session %s", session)

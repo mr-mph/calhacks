@@ -30,6 +30,12 @@ def test_jsonl_sink_appends_across_runs(tmp_path):
     assert len(read_lines(tmp_path / "s" / "observations.jsonl")) == 2
 
 
+@pytest.mark.parametrize("session", ["../escape", "/abs", "..", ""])
+def test_session_must_be_a_plain_folder_name(tmp_path, session):
+    with pytest.raises(ValueError):
+        JsonlSink(tmp_path, session)
+
+
 def test_unknown_kind_is_rejected(tmp_path):
     with pytest.raises(ValueError):
         JsonlSink(tmp_path, "s").write("prices", {})

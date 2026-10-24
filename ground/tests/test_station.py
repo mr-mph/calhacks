@@ -1,8 +1,13 @@
+import functools
+import http.server
 import json
 import shutil
+import threading
+
+import pytest
 
 import station
-from station import parse_index, replay_stills
+from station import PiSource, parse_index, replay_stills
 
 INDEX_HEADER = "file,t_unix,altitude_m,pitch_deg,roll_deg,tilt_deg\n"
 
@@ -20,9 +25,35 @@ def make_session(tmp_path, real_images):
     return session
 
 
-def test_parse_index_skips_blank_rows():
-    rows = parse_index(INDEX_HEADER + "a.jpg,1.0,,,,\n,,,,,\n")
+def test_parse_index_keeps_only_plain_stills_with_timestamps():
+    rows = parse_index(INDEX_HEADER + "a.jpg,1.0,,,,\n,,,,,\n../../etc/passwd.jpg,2.0,,,,\nb.jpg?x=1,3.0,,,,\n"
+                       ".hidden.jpg,4.0,,,,\nc.jpg,not-a-time,,,,\n")
     assert [r["file"] for r in rows] == ["a.jpg"]
+
+
+@pytest.fixture
+def fake_pi(tmp_path, real_images):
+    """Serves the Pi's URL layout (/api/status, /data/sessions/...) from a folder of real stills."""
+    session = make_session(tmp_path / "data" / "sessions", real_images)
+    (tmp_path / "api").mkdir()
+    (tmp_path / "api" / "status").write_text(json.dumps({"session": session.name}))
+    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(tmp_path))
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{server.server_port}", session
+    server.shutdown()
+
+
+def test_live_source_skips_backlog_then_fetches_only_new_stills(fake_pi, real_images):
+    url, session = fake_pi
+    stills = iter(PiSource(url, poll_s=0.01))
+    first = next(stills)
+    assert first.file == "1792880004.000.jpg" and first.jpeg[:2] == b"\xff\xd8"
+    shutil.copy(real_images["street_b"], session / "stills" / "1792880006.000.jpg")
+    with open(session / "stills" / "index.csv", "a") as f:
+        f.write("1792880006.000.jpg,1792880006.000,93.0,1.0,2.0,6.0\n")
+    second = next(stills)
+    assert second.file == "1792880006.000.jpg" and second.tilt_deg == 6.0
 
 
 def test_replay_reads_telemetry(tmp_path, real_images):
