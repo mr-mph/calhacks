@@ -6,3 +6,9 @@ venv/
 data/
 *.log
 .env
+
+# ground station (laptop)
+ground/.venv/
+ground/runs/
+ground/datasets/
+*.pt
