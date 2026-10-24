@@ -27,9 +27,9 @@ Data layout on the SD card: `/data/balloon/sessions/<YYYYmmdd-HHMMSS>/`
 
 1. `brew install --cask raspberry-pi-imager`, put the microSD in a reader.
 2. Raspberry Pi Imager → Pi 4 → **Raspberry Pi OS (64-bit)** → your card → Next → **Edit settings**:
-   hostname `balloon`, user `pi` + password, Wi-Fi = the **phone hotspot** SSID/password, locale;
+   hostname `balloon`, user `tarun` + password, Wi-Fi = the **phone hotspot** SSID/password, locale;
    Services → enable SSH (password, or paste `~/.ssh/id_ed25519.pub`).
-3. Boot the Pi with the webcam attached. Put the Mac on the same hotspot. `ssh pi@balloon.local`.
+3. Boot the Pi with the webcam attached. Put the Mac on the same hotspot. `ssh tarun@balloon.local`.
 
 ## 2. Wire the Grove sensors (Base Hat)
 
@@ -48,9 +48,9 @@ I2C sensors are auto-detected by address. Analog channels are set in `/etc/defau
 ## 3. Deploy
 
 ```bash
-./deploy.sh pi@balloon.local --setup              # first time: copies code, installs packages, enables services
-./deploy.sh pi@balloon.local --setup --usb-gadget  # ...and also make the USB-C port an Ethernet link (reboot after)
-./deploy.sh pi@balloon.local                       # later: copy code + restart services
+./deploy.sh tarun@balloon.local --setup              # first time: copies code, installs packages, enables services
+./deploy.sh tarun@balloon.local --setup --usb-gadget  # ...and also make the USB-C port an Ethernet link (reboot after)
+./deploy.sh tarun@balloon.local                       # later: copy code + restart services
 ```
 
 Then open **http://balloon.local:8080** (or `http://<pi-ip>:8080`) on a phone or laptop.
@@ -67,7 +67,18 @@ python3 tools/test_sensor.py -k analog      # light_pct drops when covered; aq_r
 journalctl -fu balloon-telemetry     # live log of the service
 ```
 
-## 5. Operating notes
+## 5. Before launch and after landing
+
+```bash
+ssh tarun@balloon.local /opt/balloon/tools/preflight.sh   # GO / NO-GO: services, camera, sensors, disk, power, wifi
+./fetch.sh                                                 # pull all sessions to ./data/sessions on the Mac
+python3 analysis/plot_session.py data/sessions/<session>   # one-page flight summary PNG (needs matplotlib)
+python3 pi/tests/test_drivers_fake_i2c.py                  # driver math vs Bosch datasheet, no hardware needed
+```
+
+Name a marker "launch" (the Mark button) and the dashboard shows time aloft; the peak altitude chip tracks the max.
+
+## 6. Operating notes
 
 - Altitude is relative: zeroed to the median pressure of the first 5 s after the service starts. Press **Zero alt** on
   the dashboard (or `curl -X POST http://balloon.local:8080/api/zero`) on the ground right before launch.
@@ -75,7 +86,7 @@ journalctl -fu balloon-telemetry     # live log of the service
 - Video recording pauses automatically when the SD card has < 1 GB free; CSV logging never stops.
 - Services survive Wi-Fi loss (nothing depends on the network); a timer kicks Wi-Fi if it stays down > 2 min.
 - USB-C gadget mode: after `--usb-gadget` + reboot, plugging the Pi's USB-C port into the Mac gives you
-  `ssh pi@balloon.local` and the dashboard over the cable, no Wi-Fi needed (the Pi hands the Mac an address).
+  `ssh tarun@balloon.local` and the dashboard over the cable, no Wi-Fi needed (the Pi hands the Mac an address).
 - Post-flight map of higher quality: `python3 -m balloon.mapper --batch /data/balloon/sessions/<s>/stills -o map.jpg --every 2`
 - Develop the dashboard on a laptop with fake sensors:
   `cd pi && BALLOON_SIM=1 BALLOON_DATA=/tmp/balloon python3 -m balloon.server` → http://localhost:8080

@@ -216,6 +216,24 @@
       if (t.extra) el.querySelector(".x").textContent = latest[t.extra] ? " " + latest[t.extra] : "";
     }
   }
+  let peakAlt = null;
+  function renderFlight() {
+    const a = latest.altitude_m;
+    if (a != null && (peakAlt == null || a > peakAlt)) peakAlt = a;
+    // peak over the whole buffer on first render (history may hold the real peak)
+    if (peakAlt == null && cols.altitude_m) for (const v of cols.altitude_m) if (v != null && (peakAlt == null || v > peakAlt)) peakAlt = v;
+    $("#chip-peak").textContent = "peak " + (peakAlt == null ? "—" : peakAlt.toFixed(1)) + " m";
+    const launch = markers.filter((m) => /launch|release|up/i.test(m.note || "")).slice(-1)[0];
+    if (launch && latest.t_unix) {
+      const s = Math.max(0, Math.round(latest.t_unix - launch.t_unix));
+      $("#chip-aloft").textContent = "aloft " + Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+    } else $("#chip-aloft").textContent = "launch not marked";
+    $("#chip-markers").textContent = markers.length + " marker" + (markers.length === 1 ? "" : "s");
+    if (status.session) {
+      $("#csv-link").href = "/data/sessions/" + status.session + "/telemetry.csv";
+      $("#browse-link").href = "/data/sessions/" + status.session + "/";
+    }
+  }
   function renderChips() {
     $("#chip-samples").textContent = (status.samples || n) + " samples";
     const free = latest.disk_free_gb; $("#chip-disk").textContent = "disk " + (free != null ? free.toFixed(1) + " GB free" : "—");
@@ -238,7 +256,7 @@
     $("#conn-text").classList.toggle("bad", !alive);
     if (dirty) {
       dirty = false;
-      redraw(); renderTiles(); renderChips();
+      redraw(); renderTiles(); renderChips(); renderFlight();
       if ($("#values-table").closest("details").open) renderTable();
     }
   }
@@ -268,10 +286,10 @@
       $("#chip-session").textContent = "session " + (status.session || "—");
       markers = status.markers || markers;
       $("#servo-row").classList.toggle("hidden", !status.servo);
+      const si = status.sensors || {};
       $("#sensors-info").textContent = status.sim ? "SIMULATED sensors (BALLOON_SIM=1)" :
-        "I2C: " + ((status.sensors || {}).i2c_addresses || []).join(", ") + " · detected: " +
-        ((status.sensors || {}).sensors || []).map((s) => s.name).join(", ") +
-        ((status.sensors || {}).errors || []).length ? " · errors: " + ((status.sensors || {}).errors || []).join("; ") : "";
+        "I2C: " + (si.i2c_addresses || []).join(", ") + " · detected: " + (si.sensors || []).map((s) => s.name).join(", ") +
+        ((si.errors || []).length ? " · errors: " + si.errors.join("; ") : "");
       if (status.mosaic && mosaicVisible()) refreshMosaic();
     } catch (e) { }
   }
@@ -306,6 +324,7 @@
   });
   $("#btn-mark").onclick = async () => {
     const note = $("#mark-note").value.trim() || "mark";
+    $("#btn-mark").textContent = "✓"; setTimeout(() => ($("#btn-mark").textContent = "Mark"), 800);
     await fetch("/api/mark", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note }) });
     $("#mark-note").value = "";
   };

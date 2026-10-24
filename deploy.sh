@@ -1,12 +1,12 @@
 #!/bin/bash
 # Copy the Pi code to the Pi and (re)start the services. Run from the Mac:
-#     ./deploy.sh [user@]host        default: pi@balloon.local
-#     ./deploy.sh pi@balloon.local --setup       also run setup.sh (first time / after changes to it)
-#     ./deploy.sh pi@balloon.local --setup --usb-gadget
+#     ./deploy.sh [user@]host        default: tarun@balloon.local
+#     ./deploy.sh tarun@balloon.local --setup       also run setup.sh (first time / after changes to it)
+#     ./deploy.sh tarun@balloon.local --setup --usb-gadget
 set -euo pipefail
 cd "$(dirname "$0")"
-TARGET="${1:-pi@balloon.local}"
-[[ "$TARGET" == *@* ]] || TARGET="pi@$TARGET"
+TARGET="${1:-tarun@balloon.local}"
+[[ "$TARGET" == *@* ]] || TARGET="tarun@$TARGET"
 shift || true
 SETUP=0; EXTRA=""
 for a in "$@"; do

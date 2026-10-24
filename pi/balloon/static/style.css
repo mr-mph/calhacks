@@ -115,3 +115,6 @@ th { color: var(--muted); font-weight: 500; }
 .muted { color: var(--muted); font-size: 12px; padding: 4px 12px 8px; }
 
 .js-errors { margin: 0; padding: 8px 16px; background: var(--crit); color: #fff; font: 12px/1.4 ui-monospace, monospace; white-space: pre-wrap; }
+
+.flight { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 16px 0; }
+.chip.link { text-decoration: none; color: var(--s1); }
