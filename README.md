@@ -78,6 +78,12 @@ python3 pi/tests/test_drivers_fake_i2c.py                  # driver math vs Bosc
 
 Name a marker "launch" (the Mark button) and the dashboard shows time aloft; the peak altitude chip tracks the max.
 
+- **Replay**: open `http://balloon.local:8080/?replay=<session>` (or the "replay" link in Sensors & sessions) to play back
+  any recorded flight at 1-50x with the stills as the video track. Works for the demo if the balloon can't fly.
+- **Vertical profiles**: temperature, air quality, light, UV, humidity, eCO2 and sway plotted against altitude
+  (appear once the payload has moved more than 3 m).
+- **QR** button in the header shows a QR code pointing at the dashboard for judges' phones.
+
 ## 6. Operating notes
 
 - Altitude is relative: zeroed to the median pressure of the first 5 s after the service starts. Press **Zero alt** on

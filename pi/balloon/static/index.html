@@ -20,10 +20,19 @@
     <span class="chip" id="chip-disk" title="Free space on SD card">disk —</span>
     <span class="chip" id="chip-cpu" title="Pi CPU temperature">cpu —</span>
     <span class="chip" id="chip-rssi" title="Wi-Fi signal">wifi —</span>
+    <a class="btn ghost hidden" id="live-link" href="/" title="Back to live view">● Live</a>
+    <button class="btn ghost" id="qr-toggle" title="QR code for this dashboard">QR</button>
     <button class="btn ghost" id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">◐</button>
   </div>
 </header>
 
+<section class="replay hidden" id="replay-bar">
+  <button class="btn" id="rp-play">Play</button>
+  <select id="rp-speed" aria-label="Replay speed"><option value="1">1×</option><option value="5">5×</option><option value="10" selected>10×</option><option value="50">50×</option></select>
+  <input id="rp-scrub" type="range" min="0" max="1000" value="0" aria-label="Scrub">
+  <span class="chip" id="rp-time">—</span>
+  <span class="chip" id="rp-session">replay</span>
+</section>
 <section class="tiles" id="tiles" aria-label="Latest readings"></section>
 <section class="flight" id="flight">
   <span class="chip" id="chip-peak">peak — m</span>
@@ -76,6 +85,11 @@
 
   <section class="charts" id="charts"></section>
 
+  <section class="card profiles-card">
+    <div class="card-head"><h2>Vertical profiles · value vs altitude</h2><span class="muted" id="profiles-note">waiting for altitude change</span></div>
+    <div class="profile-grid" id="profiles"></div>
+  </section>
+
   <section class="card table-card">
     <details>
       <summary>All latest values (table)</summary>
@@ -93,6 +107,9 @@
 </main>
 
 <div id="tooltip" class="tooltip hidden" role="status"></div>
+<div id="qr-overlay" class="qr-overlay hidden" role="dialog" aria-label="QR code">
+  <div class="qr-box"><img id="qr-img" alt="QR code to this dashboard"><div id="qr-url" class="qr-url"></div><div class="muted">tap anywhere to close</div></div>
+</div>
 <script src="/static/vendor/uPlot.iife.min.js"></script>
 <script src="/static/app.js"></script>
 </body>

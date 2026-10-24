@@ -106,6 +106,48 @@ def api_servo():
     return jsonify({"ok": True, "angle": angle})
 
 
+@app.route("/api/replay/<session>")
+def api_replay(session):
+    """Column-oriented dump of a past session's telemetry.csv for the dashboard's replay mode."""
+    import csv as _csv
+    if "/" in session or ".." in session:
+        abort(400)
+    p = os.path.join(config.SESSIONS_DIR, session, "telemetry.csv")
+    if not os.path.exists(p):
+        abort(404)
+    cols = {c: [] for c in COLUMNS if c != "t_iso"}
+    with open(p, newline="") as f:
+        for r in _csv.DictReader(f):
+            for c in cols:
+                v = r.get(c, "")
+                if v == "":
+                    cols[c].append(None)
+                else:
+                    try:
+                        cols[c].append(float(v))
+                    except ValueError:
+                        cols[c].append(v)
+    markers = []
+    mp = os.path.join(config.SESSIONS_DIR, session, "markers.csv")
+    if os.path.exists(mp):
+        with open(mp, newline="") as f:
+            for r in _csv.DictReader(f):
+                try:
+                    markers.append({"t_unix": float(r["t_unix"]), "note": r.get("note", "")})
+                except (KeyError, ValueError):
+                    pass
+    return jsonify({"session": session, "columns": cols, "n": len(cols["t_unix"]), "markers": markers})
+
+
+@app.route("/qr.svg")
+def qr_svg():
+    """QR code pointing at this dashboard (for judges' phones). Pure-python, no dependency."""
+    from .qr import qr_svg as _qr
+    host = request.host.split(":")[0]
+    url = "http://%s:%d/" % (host, config.HTTP_PORT)
+    return Response(_qr(url), mimetype="image/svg+xml")
+
+
 @app.route("/api/sessions")
 def api_sessions():
     out = []
