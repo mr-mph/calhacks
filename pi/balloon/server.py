@@ -17,6 +17,7 @@ Runs the sampler thread (so logging continues even with no viewers) and serves:
 """
 import json
 import logging
+from html import escape
 import os
 import queue
 import time
@@ -191,14 +192,16 @@ def api_sessions():
 
 @app.route("/data/<path:path>")
 def data_files(path):
-    full = os.path.realpath(os.path.join(config.DATA_ROOT, path))
-    if not full.startswith(os.path.realpath(config.DATA_ROOT)):
+    root = os.path.realpath(config.DATA_ROOT)
+    full = os.path.realpath(os.path.join(root, path))
+    # a bare prefix check would also accept a sibling like /data/balloon-old
+    if full != root and not full.startswith(root + os.sep):
         abort(403)
     if os.path.isdir(full):
         entries = sorted(os.listdir(full))
         html = ["<html><body style='font-family:system-ui'><h3>/data/%s</h3><ul>" % path]
         for e in entries:
-            html.append("<li><a href='/data/%s/%s'>%s</a></li>" % (path.rstrip("/"), e, e))
+            html.append("<li><a href='/data/%s/%s'>%s</a></li>" % (escape(path.rstrip("/")), escape(e), escape(e)))
         html.append("</ul></body></html>")
         return "\n".join(html)
     return send_from_directory(config.DATA_ROOT, path, as_attachment=False, conditional=True)
