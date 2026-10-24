@@ -109,4 +109,8 @@ tailwind, atlassian-forge, jira, confluence, vercel
   Convex action that files the Jira incident.
 - **Atlassian:** Track 1 (agent that does patrol triage) with Track 2 guardrails (audit log, revert, injection
   defense). Demo site one-atlas-dqcx.atlassian.net.
-- **SpaceXAI:** [built with Cursor; satellite-vs-balloon comparison; Grok usage if required].
+- **SpaceXAI:** we pulled the freshest free imagery of Ocean Beach and Marina Green from Microsoft Planetary
+  Computer and put it next to the balloon's view. Sentinel-2 was 9 days old at 10 m per pixel, so a car is less than
+  half a pixel; the sharpest free aerial photo (NAIP, 0.6 m) was from May 2022. The balloon sees about 7 cm per pixel,
+  every 2 seconds, so its labels can serve as ground truth for satellite counts of the same place
+  (`ground/satellite.py`). [Built with Cursor; Grok voice reads confirmed alerts aloud.]
