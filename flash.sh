@@ -5,10 +5,10 @@
 # Prompts for anything not set in the environment: WIFI_SSID, WIFI_PASSWORD, PI_PASSWORD.
 # Optional: PI_USER (tarun), PI_HOSTNAME (balloon), WIFI_COUNTRY (US), PI_TIMEZONE (America/Los_Angeles),
 # PI_SSH_KEY (~/.ssh/id_ed25519.pub if it exists: authorized on the Pi so ssh needs no password),
-# USB_GADGET (1: the Pi's USB-C port is also a network link, so ssh works over the power cable with no Wi-Fi).
+# IMAGE (a local .img.xz instead of downloading the latest), USB_GADGET (1: the Pi's USB-C port is also a network link, so ssh works over the power cable with no Wi-Fi).
 set -euo pipefail
 IMAGER="/Applications/Raspberry Pi Imager.app/Contents/MacOS/rpi-imager"
-IMAGE_URL="https://downloads.raspberrypi.com/raspios_lite_arm64_latest"
+IMAGE="${IMAGE:-https://downloads.raspberrypi.com/raspios_lite_arm64_latest}"
 DEVICE="${1:?usage: ./flash.sh /dev/diskN}"
 PI_USER="${PI_USER:-tarun}"
 PI_HOSTNAME="${PI_HOSTNAME:-balloon}"
@@ -95,7 +95,7 @@ network:
 EOF
 
 echo "== writing Raspberry Pi OS Lite (64-bit) to $DEVICE (erases it) =="
-"$IMAGER" --cli --disable-eject --cloudinit-userdata "$TMP/user-data" --cloudinit-networkconfig "$TMP/network-config" "$IMAGE_URL" "$DEVICE"
+"$IMAGER" --cli --disable-eject --cloudinit-userdata "$TMP/user-data" --cloudinit-networkconfig "$TMP/network-config" "$IMAGE" "$DEVICE"
 
 if [ "$USB_GADGET" = "1" ]; then
   diskutil mountDisk "$DEVICE" >/dev/null
