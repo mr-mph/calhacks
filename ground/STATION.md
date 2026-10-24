@@ -124,7 +124,8 @@ It is not balloon data: there is no telemetry, and the street is in the VisDrone
 | `decisions.jsonl` | every pricing change; a pricing hold when its category (frame or policy) changes, else at most one per 5 minutes per lot; market proposal (accepted or rejected, with the reason), market settlement |
 | `alerts.jsonl` | beach alert, always `"status": "needs_review"` until a person confirms it |
 
-`ground/out/spend.json` holds the Claude spend per session (see the guard below).
+`audio/alert-<t>.mp3` holds each alert read aloud by Grok. `ground/out/spend.json` holds the Claude and Grok spend
+per session (see the guard below).
 
 ## Drawing a site
 
@@ -172,6 +173,13 @@ Claude writes words; the engines set every number.
   2 minutes. Claude gets the frame (downscaled to 1024 px), the detections and counts, and returns a short alert
   plus an uncertainty line. It counts people and never describes or identifies anyone. Low-confidence frames
   still produce an alert, marked as a lead rather than a finding.
+- **Alert voice** (`agents/voice.py`). Each alert, once written, is read aloud by Grok: one call to xAI's
+  text-to-speech endpoint (`POST https://api.x.ai/v1/tts`, voice `rex`, MP3 24 kHz 64 kbps) with "Beach alert."
+  plus the alert and its uncertainty line. The MP3 lands in `out/<session>/audio/`, the alert record points at it
+  (`"audio": {"file", "voice", "bytes"}`), and the Convex sink uploads it with the alert so the live map can play
+  it. xAI charges $15 per million characters, about $0.003 to $0.005 per alert. Without `XAI_API_KEY`, over the
+  cap, or on an xAI error, the alert goes out without audio. The call blocks the station for 1 to 3 s, at most
+  once every 2 minutes.
 
 Without a key every agent runs in engine-only mode: same numbers, template wording, and `explained_by` or
 `written_by` says `engine`.
@@ -186,6 +194,8 @@ The org has a small monthly budget, so:
   the session past the cap, the call is refused, logged, and the agent falls back to engine wording.
 - After each call the actual cost from the response's token usage is added to `ground/out/spend.json`, per
   session and per purpose. Restarting the station keeps the running total.
+- Grok alert audio counts against the same cap, as purpose `voice` (characters times xAI's published price,
+  checked before the call).
 
 ## Environment
 
@@ -195,7 +205,9 @@ The org has a small monthly budget, so:
 | `BALLOON_ENV_FILE` | the main checkout's env file | dotenv file to read the key from (never printed or logged) |
 | `BALLOON_TEXT_MODEL` | `claude-haiku-5-5` | explanations and market proposals |
 | `BALLOON_VISION_MODEL` | `claude-sonnet-5-5` | beach alerts |
-| `BALLOON_SPEND_CAP_USD` | `10` | Claude spend cap per session |
+| `BALLOON_SPEND_CAP_USD` | `10` | Claude plus Grok voice spend cap per session |
+| `XAI_API_KEY` | none | xAI key for alert audio. If unset, read from the file in `BALLOON_ENV_FILE` |
+| `BALLOON_VOICE_ID` | `rex` | Grok voice (`GET https://api.x.ai/v1/tts/voices` lists them) |
 | `BALLOON_WEIGHTS` | `yolo11n.pt` | detector weights |
 | `BALLOON_MODEL_NAME` | weights file stem | `model` field in observations, e.g. `yolo11n-visdrone-v1` |
 | `BALLOON_IMGSZ` | `1280` | detector input size |
@@ -209,6 +221,8 @@ cd ground
 
 Image tests use real drone frames from the public VisDrone2019 val set, downloaded once into the pytest cache.
 `tests/test_live_claude.py` makes one real call per agent (three in total, capped at $0.50) and skips without a key.
+`tests/test_live_voice.py` makes one real Grok text-to-speech call (about $0.003), writes `out/voice-smoke.mp3`
+and checks it parses as MP3 frames; it skips without `XAI_API_KEY`.
 
 ## Not built yet
 

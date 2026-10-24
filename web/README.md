@@ -33,7 +33,7 @@ Typecheck and lint: `pnpm build`, `pnpm lint`.
 | `sites` | site map (zones and space polygons in reference-frame pixels) | `ingest:setSite` |
 | `prices` | price point for a lot | every decision, or `ingest:batch` `prices` |
 | `decisions` | pricing decision: inputs, action, price before/after, explanation | `ingest:batch` |
-| `alerts` | drafted beach alert, status `needs_review`, `confirmed` or `dismissed`, plus its Jira send result | `ingest:batch`; status by `alerts:review`; `jira` by `jira:send` |
+| `alerts` | drafted beach alert, status `needs_review`, `confirmed` or `dismissed`, plus its Jira send result and optional Grok audio (`audioId` in file storage, `voice`) | `ingest:batch`; status by `alerts:review`; `jira` by `jira:send` |
 
 Queries the page uses: `live:now` (frame, observation, site), `live:lots` (prices and decisions per lot),
 `live:alerts`. They are split so a new frame every 2 s only re-runs `live:now`.
@@ -62,6 +62,16 @@ npx convex env set PATROL_CODE <value> && npx convex env set --prod PATROL_CODE 
 ```
 
 It is a shared passcode, not a login: anyone who has it can review alerts. Add Convex Auth before real patrol use.
+
+## Alerts read aloud (Grok)
+
+The station reads each alert aloud with xAI's Grok text-to-speech and uploads the MP3 with the alert
+(`ground/STATION.md`, "Alert voice"). `live:alerts` returns its `audioUrl`. Each alert card with audio has a
+Play alert button labelled "Voice by Grok". The "Read new alerts aloud" switch at the top of Alerts plays each new
+alert's audio as it arrives, on that phone only, while the page is open (on either tab). It is off by default and
+remembered in `localStorage` (`overhead-read-aloud`). Browsers block sound until someone taps, so the tap on the
+switch is what allows it; if a browser still blocks it (for example after a reload), the page says so and asks for
+the switch to be turned off and on again. `admin:purgeSession` deletes the audio files with the alerts.
 
 ## Confirmed alerts go to Jira
 

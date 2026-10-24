@@ -80,7 +80,9 @@ previous few frames. Every consumer must ignore or down-weight frames below 0.5 
 **Beach alerts (Anthropic track).** When the frame shows a rip candidate, or people in the water near one, the alert
 writer sends Claude the frame, the detections and the counts. Claude writes a short alert for a patrol member or
 parent ("Rip forming north of the stairs, 2 people in the water near it"), states its uncertainty, and never claims to
-identify anyone. A person confirms before anything is sent anywhere. Stored in Convex `alerts`.
+identify anyone. A person confirms before anything is sent anywhere. Stored in Convex `alerts`. Grok (xAI
+text-to-speech) reads each alert and its uncertainty line aloud; the live map plays it on tap, or on arrival when
+a patrol member turns on "Read new alerts aloud" (SpaceXAI track).
 
 **Surge pricing (Hyphenate track).** Each lot zone has a price that follows occupancy: base price below 60% full,
 rising to a cap as it fills, falling as spaces free up. The pricing agent may change a price at most once every 5
