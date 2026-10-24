@@ -3,7 +3,8 @@
 # so the Pi comes up as tarun@balloon.local with no monitor. Run from the Mac:
 #     ./flash.sh /dev/diskN          find N with: diskutil list external physical (built-in reader shows as internal)
 # Prompts for anything not set in the environment: WIFI_SSID, WIFI_PASSWORD, PI_PASSWORD.
-# Optional: PI_USER (tarun), PI_HOSTNAME (balloon), WIFI_COUNTRY (US), PI_TIMEZONE (America/Los_Angeles).
+# Optional: PI_USER (tarun), PI_HOSTNAME (balloon), WIFI_COUNTRY (US), PI_TIMEZONE (America/Los_Angeles),
+# PI_SSH_KEY (~/.ssh/id_ed25519.pub if it exists: authorized on the Pi so ssh needs no password).
 set -euo pipefail
 IMAGER="/Applications/Raspberry Pi Imager.app/Contents/MacOS/rpi-imager"
 IMAGE_URL="https://downloads.raspberrypi.com/raspios_lite_arm64_latest"
@@ -12,6 +13,7 @@ PI_USER="${PI_USER:-tarun}"
 PI_HOSTNAME="${PI_HOSTNAME:-balloon}"
 WIFI_COUNTRY="${WIFI_COUNTRY:-US}"
 PI_TIMEZONE="${PI_TIMEZONE:-America/Los_Angeles}"
+PI_SSH_KEY="${PI_SSH_KEY:-$HOME/.ssh/id_ed25519.pub}"
 
 [ -x "$IMAGER" ] || { echo "Raspberry Pi Imager missing: brew install --cask raspberry-pi-imager"; exit 1; }
 # refuse anything that isn't removable media, so a typo can't wipe an internal drive
@@ -28,6 +30,9 @@ if HASH=$(openssl passwd -6 "$PI_PASSWORD" 2>/dev/null); then
 else
   PASSWD_LINE="plain_text_passwd: \"$PI_PASSWORD\""
 fi
+KEY_LINES=""
+[ -f "$PI_SSH_KEY" ] && KEY_LINES="  ssh_authorized_keys:
+  - $(cat "$PI_SSH_KEY")"
 
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 cat > "$TMP/user-data" <<EOF
@@ -51,6 +56,7 @@ users:
   shell: /bin/bash
   lock_passwd: false
   $PASSWD_LINE
+$KEY_LINES
 ssh_pwauth: true
 enable_ssh: true
 runcmd:
