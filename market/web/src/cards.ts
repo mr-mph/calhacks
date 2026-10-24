@@ -1,5 +1,5 @@
 import { MICRO_PER_CREDIT, priceYes, type Book, type Side } from '../../server/src/lmsr';
-import { h } from './dom';
+import { h, type Child } from './dom';
 import { agoText, closesText, credits, eyebrowText, metricUnit, paysText, percent, thresholdPhrase, wholeCredits } from './format';
 import { icon } from './icons';
 import type { LatestObservation, Market, Position } from './module_bindings/types';
@@ -40,18 +40,28 @@ function sideLabel(side: Side): string {
   return side === 'yes' ? 'Yes' : 'No';
 }
 
-function outcomeRow(side: Side, p: number, pillText: string, opts: { onPick?: () => void; pillClass?: string; pays?: string; key?: string }) {
+interface RowOpts {
+  onPick?: () => void;
+  pillClass?: string;
+  pays?: string;
+  key?: string;
+  // Open rows are colored by side; settled rows stay neutral and only the result pill carries color.
+  tone?: 'settled';
+}
+
+function outcomeRow(side: Side, p: number, pill: Child[], opts: RowOpts) {
+  const tone = opts.tone ?? side;
   const children = [
     h('span', { class: 'outcome-label' }, sideLabel(side)),
     h('span', { class: 'outcome-pays' }, opts.pays ?? ''),
-    h('span', { class: `pill ${opts.pillClass ?? ''}` }, pillText),
+    h('span', { class: `pill ${opts.pillClass ?? ''}` }, ...pill),
     h('span', { class: 'line', attrs: { 'aria-hidden': 'true' } }, h('span', { class: 'line-fill', attrs: { style: `display:block;width:${(p * 100).toFixed(1)}%` } })),
   ];
-  if (!opts.onPick) return h('div', { class: `outcome ${side}` }, ...children);
+  if (!opts.onPick) return h('div', { class: `outcome ${tone}` }, ...children);
   return h(
     'button',
     {
-      class: `outcome ${side}`,
+      class: `outcome ${tone}`,
       attrs: { type: 'button', 'data-key': `pick-${opts.key}-${side}`, 'aria-label': `Buy ${sideLabel(side)}, ${percent(p)} chance, ${opts.pays}` },
       onClick: opts.onPick,
     },
@@ -84,7 +94,7 @@ export function openCard(m: Market, view: View, openSheet: OpenSheet): HTMLEleme
   const key = marketKey(m.id);
   const rows = SIDES.map(side => {
     const ps = side === 'yes' ? p : 1 - p;
-    return outcomeRow(side, ps, percent(ps), { pays: paysText(ps), key, onPick: canTrade ? () => openSheet(m.id, side) : undefined });
+    return outcomeRow(side, ps, [percent(ps)], { pays: paysText(ps), key, onPick: canTrade ? () => openSheet(m.id, side) : undefined });
   });
   const closedNote = !isTradable(m, view.now) && h('p', { class: 'muted' }, "Trading closed. Waiting for the balloon's count to settle.");
   const joinNote = !view.account && isTradable(m, view.now) && h('p', { class: 'muted' }, 'Pick a name above to trade.');
@@ -116,11 +126,12 @@ function resultText(m: Market, p: Position | undefined): string | null {
 
 function settledRows(m: Market) {
   if (m.status === 'void') {
-    return SIDES.map(side => outcomeRow(side, 0, 'Void', { pillClass: 'pill-void' }));
+    return SIDES.map(side => outcomeRow(side, 0, ['Void'], { pillClass: 'pill-void', tone: 'settled' }));
   }
   return SIDES.map(side => {
     const won = m.outcome === side;
-    return outcomeRow(side, won ? 1 : 0, won ? 'Won' : 'Lost', { pillClass: won ? '' : 'pill-muted' });
+    const pill = won ? [icon('check'), 'Won'] : ['Lost'];
+    return outcomeRow(side, won ? 1 : 0, pill, { pillClass: won ? 'pill-won' : 'pill-lost', tone: 'settled' });
   });
 }
 
