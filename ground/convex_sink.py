@@ -53,6 +53,12 @@ class PendingFrame:
     name: str
 
 
+@dataclass(frozen=True)
+class PendingAlert:
+    alert: dict
+    audio: bytes | None = None
+
+
 def clean(value: Any) -> Any:
     """Make a value Convex-safe: drop None fields, tuples to lists, numpy scalars to Python numbers."""
     if isinstance(value, dict):
@@ -122,7 +128,20 @@ def convex_alert(record: dict) -> dict:
         "uncertainty": record["uncertainty"], "severity": alert_severity(record), "frame": record.get("frame"),
         "model": record.get("written_by"), "zone": record.get("zone"), "confidence": record.get("confidence"),
         "counts": alert_counts(record),
+        "voice": (record.get("audio") or {}).get("voice"),
     })
+
+
+def alert_audio(record: dict) -> bytes | None:
+    """The alert's Grok MP3 (written by the station next to the JSONL), or None when it has none or it's gone."""
+    path = (record.get("audio") or {}).get("file")
+    if not path:
+        return None
+    try:
+        return Path(path).read_bytes()
+    except OSError as e:
+        log.warning("alert audio %s unreadable (%s); sending the alert without it", path, type(e).__name__)
+        return None
 
 
 def shrink_jpeg(raw: bytes, max_width: int) -> tuple[bytes, tuple[int, int] | None]:
@@ -161,7 +180,7 @@ class ConvexSink:
         self._lock = threading.Lock()
         self._observations: deque[dict] = deque(maxlen=MAX_QUEUED)
         self._decisions: deque[dict] = deque(maxlen=MAX_QUEUED)
-        self._alerts: deque[dict] = deque(maxlen=MAX_QUEUED)
+        self._alerts: deque[PendingAlert] = deque(maxlen=MAX_QUEUED)
         self._site: dict | None = None
         self._frame: PendingFrame | None = None
         self._uploaded: dict | None = None
@@ -186,9 +205,10 @@ class ConvexSink:
             self._idle.clear()
         self._wake.set()
 
-    def write_alert(self, alert: dict) -> None:
+    def write_alert(self, alert: dict, audio: bytes | None = None) -> None:
+        """Queue an alert; audio (MP3) goes to Convex file storage first and the alert carries its audioId."""
         with self._lock:
-            self._alerts.append(clean(alert))
+            self._alerts.append(PendingAlert(clean(alert), audio))
             self._idle.clear()
         self._wake.set()
 
@@ -199,7 +219,8 @@ class ConvexSink:
         elif kind == "decisions" and (decision := convex_decision(record)):
             self.write_decision(decision)
         elif kind == "alerts":
-            self.write_alert(convex_alert(record))
+            audio = alert_audio(record)
+            self.write_alert(convex_alert(record if audio else {**record, "audio": None}), audio)
 
     def upload_frame(
         self, jpeg: str | bytes, session: str, t: float, size: tuple[int, int], name: str | None = None
@@ -272,6 +293,7 @@ class ConvexSink:
                 log.error("convex rejected the site map, dropping it: %s", self._redact(e))
 
         self._upload_newest_frame()
+        self._upload_alert_audio()
         self._send_batch()
 
         with self._lock:
@@ -288,9 +310,7 @@ class ConvexSink:
             return
         try:
             data, shrunk = shrink_jpeg(frame.jpeg, self._frame_max_width)
-            upload_url = self._call("ingest:generateUploadUrl", {})
-            r = requests.post(upload_url, data=data, headers={"Content-Type": "image/jpeg"}, timeout=self._timeout_s)
-            r.raise_for_status()
+            storage_id = self._store(data, "image/jpeg")
         except Exception:
             with self._lock:
                 self._frame = self._frame or frame
@@ -301,18 +321,41 @@ class ConvexSink:
                 "session": frame.session,
                 "t": frame.t,
                 "name": frame.name,
-                "storageId": r.json()["storageId"],
+                "storageId": storage_id,
                 "width": float(width),
                 "height": float(height),
                 "bytes": float(len(data)),
             }
+
+    def _store(self, data: bytes, content_type: str) -> str:
+        upload_url = self._call("ingest:generateUploadUrl", {})
+        r = requests.post(upload_url, data=data, headers={"Content-Type": content_type}, timeout=self._timeout_s)
+        r.raise_for_status()
+        return r.json()["storageId"]
+
+    def _upload_alert_audio(self) -> None:
+        """Each alert's MP3 is stored once; a failure leaves the rest queued with their audio for the next try."""
+        with self._lock:
+            waiting = [p for p in self._alerts if p.audio is not None]
+        for pending in waiting:
+            storage_id = self._store(pending.audio, "audio/mpeg")
+            voiced = PendingAlert({**pending.alert, "audioId": storage_id})
+            with self._lock:
+                self._alerts = deque((voiced if p is pending else p for p in self._alerts), maxlen=MAX_QUEUED)
+
+    def _take_alerts(self) -> list[dict]:
+        """Alerts in order, stopping at one whose audio isn't stored yet (it arrived after the upload step)."""
+        taken: list[dict] = []
+        while self._alerts and self._alerts[0].audio is None and len(taken) < MAX_BATCH:
+            taken.append(self._alerts.popleft().alert)
+        return taken
 
     def _send_batch(self) -> None:
         with self._lock:
             frame = self._uploaded
             obs = [self._observations.popleft() for _ in range(min(MAX_BATCH, len(self._observations)))]
             dec = [self._decisions.popleft() for _ in range(min(MAX_BATCH, len(self._decisions)))]
-            alerts = [self._alerts.popleft() for _ in range(min(MAX_BATCH, len(self._alerts)))]
+            alerts = self._take_alerts()
         if not (frame or obs or dec or alerts):
             return
         args: dict[str, Any] = {}
@@ -336,7 +379,7 @@ class ConvexSink:
             with self._lock:
                 self._observations.extendleft(reversed(obs))
                 self._decisions.extendleft(reversed(dec))
-                self._alerts.extendleft(reversed(alerts))
+                self._alerts.extendleft(PendingAlert(a) for a in reversed(alerts))
             raise
         with self._lock:
             if self._uploaded is frame:
