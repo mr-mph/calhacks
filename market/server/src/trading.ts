@@ -2,12 +2,11 @@ import { ScheduleAt, Timestamp } from 'spacetimedb';
 import { SenderError, t } from 'spacetimedb/server';
 import spacetimedb, { closeTimer, type Ctx } from './schema';
 import { requireAccount, requireFinite, requireMarket, requireOracle, requireText } from './guards';
-import { afterBuy, buyCost, maxSubsidy, priceYes, toMicroCeil, type Book, type Side } from './lmsr';
+import { afterBuy, buyCost, MAX_SHARES_PER_TRADE, maxSubsidy, priceYes, toMicroCeil, type Book, type Side } from './lmsr';
 
 const COMPARATORS = ['>=', '>', '<=', '<'];
 const MIN_B = 10;
 const MAX_B = 10_000;
-const MAX_SHARES_PER_TRADE = 1_000n;
 const MICROS_PER_SECOND = 1_000_000;
 const MAX_MARKET_LIFETIME_SECONDS = 7 * 24 * 3600;
 
@@ -112,7 +111,7 @@ export const buy = spacetimedb.reducer(
     if (ctx.timestamp.microsSinceUnixEpoch >= row.closeAt.microsSinceUnixEpoch) {
       throw new SenderError('market has closed');
     }
-    if (shares < 1n || shares > MAX_SHARES_PER_TRADE) {
+    if (shares < 1n || shares > BigInt(MAX_SHARES_PER_TRADE)) {
       throw new SenderError(`shares must be 1 to ${MAX_SHARES_PER_TRADE}`);
     }
     const book = bookOf(row);

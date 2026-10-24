@@ -42,7 +42,7 @@ export const market = table(
     createdBy: t.identity(),
     createdAt: t.timestamp(),
     resolvedAt: t.option(t.timestamp()),
-    rationale: t.string(),
+    rationale: t.string().default(''),
   }
 );
 

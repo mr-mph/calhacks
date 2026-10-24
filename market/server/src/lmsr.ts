@@ -5,6 +5,8 @@ export const MICRO_PER_CREDIT = 1_000_000n;
 
 export type Side = 'yes' | 'no';
 
+export const MAX_SHARES_PER_TRADE = 1000;
+
 export interface Book {
   qYes: number;
   qNo: number;
