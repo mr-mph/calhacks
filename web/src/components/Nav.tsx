@@ -54,7 +54,7 @@ function ThemeToggle() {
 
 export function TopBar({ tab, openAlerts }: Props) {
   return (
-    <header className="sticky top-0 z-20 bg-bg/90 backdrop-blur">
+    <header className="sticky top-0 z-20 bg-bg pt-[env(safe-area-inset-top)] shadow-[0_1px_0_var(--hairline)]">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4">
         <a href="#/live" className="font-display text-xl font-bold">
           Overhead<span className="text-accent">.</span>

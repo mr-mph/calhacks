@@ -24,7 +24,7 @@ export default function App() {
   return (
     <div className="min-h-dvh">
       <TopBar tab={tab} openAlerts={openAlerts} />
-      <main className="mx-auto max-w-7xl px-4 pt-2 pb-28 md:pb-12">
+      <main className="mx-auto max-w-7xl px-4 pt-4 pb-28 md:pb-12">
         {tab === "live" && <LiveView openAlerts={openAlerts} />}
         {tab === "markets" && <MarketsView />}
         {tab === "alerts" && <AlertsView />}
