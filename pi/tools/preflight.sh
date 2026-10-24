@@ -40,7 +40,7 @@ SESSION=$(cat /data/balloon/current_session 2>/dev/null)
 if [ -n "$SESSION" ]; then
   N=$(wc -l < "$SESSION/telemetry.csv"); [ "$N" -gt 10 ] && ok "telemetry.csv growing ($N rows)" || bad "telemetry.csv has only $N rows"
   V=$(ls "$SESSION/video" 2>/dev/null | wc -l); [ "$V" -gt 0 ] && ok "video segments: $V" || warn "no video segments yet (wait 60 s after start)"
-  S=$(ls "$SESSION/stills" 2>/dev/null | grep -c jpg); [ "$S" -gt 0 ] && ok "stills: $S" || warn "no stills yet"
+  S=$(find "$SESSION/stills" -name '*.jpg' 2>/dev/null | wc -l | tr -d ' '); [ "$S" -gt 0 ] && ok "stills: $S" || warn "no stills yet"
 fi
 T=$(vcgencmd measure_temp 2>/dev/null | tr -dc '0-9.'); [ -n "$T" ] && { awk "BEGIN{exit !($T < 75)}" && ok "CPU ${T}C" || warn "CPU hot: ${T}C"; }
 TH=$(vcgencmd get_throttled 2>/dev/null | cut -d= -f2); [ "$TH" = "0x0" ] && ok "power OK (not throttled)" || warn "throttled flags $TH -> check power bank / cable"
