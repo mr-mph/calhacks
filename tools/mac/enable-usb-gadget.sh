@@ -10,7 +10,7 @@ if [ -z "$BOOT" ]; then
   exit 1
 fi
 echo "boot partition: $BOOT"
-if ! grep -q '^dtoverlay=dwc2' "$BOOT/config.txt"; then
+if ! grep -q 'dr_mode=peripheral' "$BOOT/config.txt"; then
   printf '\n[all]\ndtoverlay=dwc2,dr_mode=peripheral\n' >> "$BOOT/config.txt"
   echo "config.txt: added dtoverlay=dwc2,dr_mode=peripheral"
 else
