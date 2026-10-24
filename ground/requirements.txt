@@ -1,0 +1,7 @@
+# Laptop ground station only (not the Pi). Python 3.14, macOS arm64.
+ultralytics==8.4.173
+torch==2.14.1
+torchvision==0.29.1
+opencv-python==5.0.0.93
+numpy==2.5.4
+PyYAML==6.0.3
