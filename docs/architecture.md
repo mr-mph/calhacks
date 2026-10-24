@@ -106,9 +106,10 @@ and how stale it is.
 
 | Piece | Folder | Status |
 |---|---|---|
-| Detector and parking occupancy | `ground/` (branch `ground-detector`) | In progress (training on VisDrone) |
-| Station loop, site files, observation records | `ground/station.py`, `ground/sites/` | Next |
-| Claude agents (alerts, pricing, markets) | `ground/agents/` | Next; needs the Anthropic API key |
-| Live map | `web/` (Convex + React) | Needs `npx convex login` |
-| Markets | `market/` (Spacetime module) | Needs Spacetime login |
+| Detector and parking occupancy | `ground/detect.py`, `ground/parking.py`, `ground/train.py` | Done; VisDrone model trained (mAP50 about 0.30 on held-out val), rip-current model next (`ground/train_rip.py`) |
+| Station loop, site files, observation records | `ground/station.py`, `ground/sites/` | Done; `ground/demo.sh` replays a session through everything |
+| Claude agents (alerts, pricing, markets) | `ground/agents/` | Done; spend guard, Haiku for text, Sonnet for vision |
+| Live map | `web/` (Convex + React) | Live at https://overhead-live.vercel.app (Convex prod) |
+| Markets | `market/` (Spacetime module) | Live at https://overhead-market.vercel.app (maincloud `overhead-market`) |
+| Jira incidents | `atlassian/` (Forge app "Balloon Patrol") | Installed on one-atlas-dqcx.atlassian.net; 4-alert smoke test passes |
 | Satellite comparison | `ground/satellite.py` | After the above |
