@@ -1,0 +1,19 @@
+[Unit]
+Description=Balloon downward-camera mosaic builder
+After=balloon-recorder.service
+
+[Service]
+Type=simple
+User=__USER__
+Group=__USER__
+WorkingDirectory=/opt/balloon
+EnvironmentFile=-/etc/default/balloon
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m balloon.mapper
+Restart=always
+RestartSec=5
+Nice=15
+CPUQuota=60%
+
+[Install]
+WantedBy=multi-user.target

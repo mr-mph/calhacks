@@ -1,0 +1,6 @@
+[Unit]
+Description=Reconnect Wi-Fi if it has been down for a while
+
+[Service]
+Type=oneshot
+ExecStart=/opt/balloon/wifi-watchdog.sh

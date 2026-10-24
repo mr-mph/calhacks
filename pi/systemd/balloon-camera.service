@@ -1,0 +1,17 @@
+[Unit]
+Description=Balloon camera MJPEG stream (ustreamer on :8081)
+After=local-fs.target
+
+[Service]
+Type=simple
+User=__USER__
+Group=__USER__
+SupplementaryGroups=video
+WorkingDirectory=/opt/balloon
+EnvironmentFile=-/etc/default/balloon
+ExecStart=/opt/balloon/balloon/camera.sh
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,20 @@
+[Unit]
+Description=Balloon telemetry logger + dashboard (sensors -> CSV, HTTP on :8080)
+After=local-fs.target
+# Deliberately NOT After=network-online: logging must start even with no Wi-Fi.
+
+[Service]
+Type=simple
+User=__USER__
+Group=__USER__
+SupplementaryGroups=i2c gpio video dialout
+WorkingDirectory=/opt/balloon
+EnvironmentFile=-/etc/default/balloon
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m balloon.server
+Restart=always
+RestartSec=2
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target

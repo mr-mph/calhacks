@@ -1,0 +1,19 @@
+[Unit]
+Description=Balloon video + stills recorder to SD card
+After=balloon-camera.service balloon-telemetry.service
+Wants=balloon-camera.service balloon-telemetry.service
+
+[Service]
+Type=simple
+User=__USER__
+Group=__USER__
+WorkingDirectory=/opt/balloon
+EnvironmentFile=-/etc/default/balloon
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m balloon.recorder
+Restart=always
+RestartSec=3
+Nice=5
+
+[Install]
+WantedBy=multi-user.target
