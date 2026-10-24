@@ -82,5 +82,8 @@ ssh tarun@balloon.local journalctl -fu balloon-telemetry
 - 2026-10-23: all software written and tested in simulation and against a synthetic camera; NOT yet run on the
   real Pi. First real-hardware run should: check `i2cdetect -y 1`, run `tools/test_sensor.py`, confirm ustreamer
   installed from apt, confirm ffmpeg records from the ustreamer stream, confirm the Grove ADC address (0x04 vs 0x08).
+- 2026-10-23: `flash.sh` writes Pi OS Lite 64-bit headless (hostname, user, SSH key, Wi-Fi via cloud-init).
+  `wifi-watchdog.sh` fixed: it matched "disconnected" as connected, so it never fired. Helium and lift numbers
+  are in `docs/launch-plan.md`.
 - Ideas not started: metre scale bar on the mosaic (footprint = 2*h*tan(FOV/2)), tilt-rectified stills,
   Claude-vision captions from snapshots (laptop side), ESP32 tether-length encoder, servo pan (code exists, off).
