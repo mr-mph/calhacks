@@ -4,7 +4,8 @@
 #     ./flash.sh /dev/diskN          find N with: diskutil list external physical (built-in reader shows as internal)
 # Prompts for anything not set in the environment: WIFI_SSID, WIFI_PASSWORD, PI_PASSWORD.
 # Optional: PI_USER (tarun), PI_HOSTNAME (balloon), WIFI_COUNTRY (US), PI_TIMEZONE (America/Los_Angeles),
-# PI_SSH_KEY (~/.ssh/id_ed25519.pub if it exists: authorized on the Pi so ssh needs no password).
+# PI_SSH_KEY (~/.ssh/id_ed25519.pub if it exists: authorized on the Pi so ssh needs no password),
+# USB_GADGET (1: the Pi's USB-C port is also a network link, so ssh works over the power cable with no Wi-Fi).
 set -euo pipefail
 IMAGER="/Applications/Raspberry Pi Imager.app/Contents/MacOS/rpi-imager"
 IMAGE_URL="https://downloads.raspberrypi.com/raspios_lite_arm64_latest"
@@ -14,6 +15,7 @@ PI_HOSTNAME="${PI_HOSTNAME:-balloon}"
 WIFI_COUNTRY="${WIFI_COUNTRY:-US}"
 PI_TIMEZONE="${PI_TIMEZONE:-America/Los_Angeles}"
 PI_SSH_KEY="${PI_SSH_KEY:-$HOME/.ssh/id_ed25519.pub}"
+USB_GADGET="${USB_GADGET:-1}"
 
 [ -x "$IMAGER" ] || { echo "Raspberry Pi Imager missing: brew install --cask raspberry-pi-imager"; exit 1; }
 # refuse anything that isn't removable media, so a typo can't wipe an internal drive
@@ -59,8 +61,24 @@ users:
 $KEY_LINES
 ssh_pwauth: true
 enable_ssh: true
+# usb0 only exists with the dwc2 overlay below; link-local on both ends means no DHCP is needed, mDNS finds the Pi.
+# Same connection name setup.sh --usb-gadget checks for, so it won't add a second one.
+write_files:
+- path: /etc/NetworkManager/system-connections/usb-gadget.nmconnection
+  permissions: '0600'
+  content: |
+    [connection]
+    id=usb-gadget
+    type=ethernet
+    interface-name=usb0
+    autoconnect=true
+    [ipv4]
+    method=link-local
+    [ipv6]
+    method=link-local
 runcmd:
 - systemctl enable --now ssh
+- nmcli connection reload || true
 EOF
 cat > "$TMP/network-config" <<EOF
 network:
@@ -77,5 +95,16 @@ network:
 EOF
 
 echo "== writing Raspberry Pi OS Lite (64-bit) to $DEVICE (erases it) =="
-"$IMAGER" --cli --cloudinit-userdata "$TMP/user-data" --cloudinit-networkconfig "$TMP/network-config" "$IMAGE_URL" "$DEVICE"
-echo "Done. Boot the Pi, wait ~3 min, then: ssh $PI_USER@$PI_HOSTNAME.local  (Mac must be on \"$WIFI_SSID\")"
+"$IMAGER" --cli --disable-eject --cloudinit-userdata "$TMP/user-data" --cloudinit-networkconfig "$TMP/network-config" "$IMAGE_URL" "$DEVICE"
+
+if [ "$USB_GADGET" = "1" ]; then
+  diskutil mountDisk "$DEVICE" >/dev/null
+  BOOT=$(diskutil info "${DEVICE}s1" | awk -F': *' '/Mount Point/{print $2}')
+  [ -f "$BOOT/cmdline.txt" ] || { echo "boot partition not found at '$BOOT', USB gadget not enabled"; exit 1; }
+  grep -q 'modules-load=dwc2' "$BOOT/cmdline.txt" || sed -i '' '1 s/$/ modules-load=dwc2,g_ether/' "$BOOT/cmdline.txt"
+  grep -q '^dtoverlay=dwc2' "$BOOT/config.txt" || printf '\n[all]\ndtoverlay=dwc2,dr_mode=peripheral\n' >> "$BOOT/config.txt"
+  echo "== USB gadget enabled: $(tail -1 "$BOOT/config.txt"); cmdline: $(grep -o 'modules-load=[^ ]*' "$BOOT/cmdline.txt")"
+fi
+diskutil eject "$DEVICE" >/dev/null
+echo "Done. Boot the Pi, wait ~3 min, then: ssh $PI_USER@$PI_HOSTNAME.local"
+echo "  over Wi-Fi: Mac on \"$WIFI_SSID\"; over USB (USB_GADGET=1): Pi's USB-C port cabled to the Mac"
