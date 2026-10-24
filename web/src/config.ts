@@ -15,3 +15,6 @@ const target = import.meta.env.MODE === "production" ? TARGETS.production : TARG
 
 export const CONVEX_URL: string = import.meta.env.VITE_CONVEX_URL ?? target.convexUrl;
 export const MARKET_URL: string = import.meta.env.VITE_MARKET_URL ?? target.marketUrl;
+
+// Balloon Patrol files confirmed alerts in this Jira site (atlassian/README.md).
+export const JIRA_BROWSE_URL = "https://one-atlas-dqcx.atlassian.net/browse/";

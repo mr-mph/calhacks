@@ -121,7 +121,7 @@ It is not balloon data: there is no telemetry, and the street is in the VisDrone
 | File | One line per |
 |---|---|
 | `observations.jsonl` | processed frame, exactly the record in architecture.md section 3 |
-| `decisions.jsonl` | pricing change or new hold reason, market proposal (accepted or rejected, with the reason), market settlement |
+| `decisions.jsonl` | every pricing change; a pricing hold when its category (frame or policy) changes, else at most one per 5 minutes per lot; market proposal (accepted or rejected, with the reason), market settlement |
 | `alerts.jsonl` | beach alert, always `"status": "needs_review"` until a person confirms it |
 
 `ground/out/spend.json` holds the Claude spend per session (see the guard below).

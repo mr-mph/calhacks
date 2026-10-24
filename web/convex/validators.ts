@@ -88,4 +88,23 @@ export const alertInputFields = {
   severity: v.optional(severity),
   frame: v.optional(v.string()),
   model: v.optional(v.string()),
+  zone: v.optional(v.string()),
+  confidence: v.optional(v.number()),
+  counts: v.optional(v.object({ person_water: v.number(), person_beach: v.number() })),
 };
+
+// After this long in "sending" the send is presumed lost and the patrol can retry it.
+export const JIRA_STALLED_AFTER_S = 90;
+
+export const jiraStatus = v.union(v.literal("sending"), v.literal("sent"), v.literal("failed"));
+
+// Where a confirmed alert stands in the patrol's Jira (Balloon Patrol web trigger, atlassian/README.md).
+export const jiraFields = v.object({
+  status: jiraStatus,
+  attempts: v.number(),
+  updatedAt: v.number(),
+  outcome: v.optional(v.string()),
+  issueKey: v.optional(v.string()),
+  reason: v.optional(v.string()),
+  error: v.optional(v.string()),
+});

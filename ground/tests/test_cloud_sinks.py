@@ -229,6 +229,10 @@ def test_station_records_map_to_convex_tables():
              "written_by": "claude-sonnet-5-5"}
     assert convex_sink.convex_alert(alert)["severity"] == "critical"
     assert convex_sink.convex_alert({**alert, "low_confidence": True})["severity"] == "info"
+    jira_ready = convex_sink.convex_alert({**alert, "zone": "surf", "confidence": 0.8, "counts": {"person": 7},
+                                           "trigger": {"people_near_rip": 2, "people_in_water_zone": 3}})
+    assert jira_ready["zone"] == "surf" and jira_ready["confidence"] == 0.8
+    assert jira_ready["counts"] == {"person_water": 3, "person_beach": 4}
     site = {"site": "marina", "reference_frame": "ref.jpg", "zones": [LOT],
             "spaces": [{"id": "A01", "zone": "lot-a", "polygon": [[0, 0], [1, 0], [1, 1]]}]}
     shaped = convex_sink.convex_site(site, (1920, 1080))

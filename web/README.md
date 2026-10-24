@@ -33,7 +33,7 @@ Typecheck and lint: `pnpm build`, `pnpm lint`.
 | `sites` | site map (zones and space polygons in reference-frame pixels) | `ingest:setSite` |
 | `prices` | price point for a lot | every decision, or `ingest:batch` `prices` |
 | `decisions` | pricing decision: inputs, action, price before/after, explanation | `ingest:batch` |
-| `alerts` | drafted beach alert, status `needs_review`, `confirmed` or `dismissed` | `ingest:batch`; status by `alerts:review` |
+| `alerts` | drafted beach alert, status `needs_review`, `confirmed` or `dismissed`, plus its Jira send result | `ingest:batch`; status by `alerts:review`; `jira` by `jira:send` |
 
 Queries the page uses: `live:now` (frame, observation, site), `live:lots` (prices and decisions per lot),
 `live:alerts`. They are split so a new frame every 2 s only re-runs `live:now`.
@@ -62,6 +62,23 @@ npx convex env set PATROL_CODE <value> && npx convex env set --prod PATROL_CODE 
 ```
 
 It is a shared passcode, not a login: anyone who has it can review alerts. Add Convex Auth before real patrol use.
+
+## Confirmed alerts go to Jira
+
+Confirming an alert schedules `jira:send`, a Convex action that POSTs it to the Balloon Patrol web trigger
+(`atlassian/README.md`) with the alert's zone, counts, confidence and a public Convex storage URL of its frame. The
+alert row keeps the result in `jira` (`sending`, `sent` with the issue key and the agent's reason, or `failed` with
+the error), and the card shows it: "Sent to Jira: BPAT-3, Highest, assigned to ...". A failed or stalled send shows
+the error and a Retry button (`alerts:retryJira`, patrol code required); retries are safe because the app ignores an
+`alert_id` it already handled. Failed sends stay in "Recently reviewed" until they go through.
+
+The action reads Convex env vars `FORGE_WEBTRIGGER_URL`, `FORGE_SECRET` and `FORGE_HEADER`, set on dev and prod from
+`~/.config/balloon/forge.json` by piping each value in, so the secret never lands in shell history:
+
+```bash
+python3 -c 'import json,pathlib; print(json.loads((pathlib.Path.home()/".config/balloon/forge.json").read_text())["secret"], end="")' \
+  | npx convex env set FORGE_SECRET            # add --prod for production; same for webtrigger_url and header
+```
 
 ## Connecting the ground station
 

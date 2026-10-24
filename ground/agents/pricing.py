@@ -11,6 +11,9 @@ from dataclasses import asdict, dataclass, replace
 from agents.llm import TEXT_MODEL, Claude
 
 EPSILON = 1e-9
+HOLD_LOG_INTERVAL_S = 300.0
+HOLD_CATEGORY = {"not_aligned": "frame", "low_confidence": "frame", "no_reading": "frame",
+                 "at_target": "policy", "rate_limited": "policy", "bounded": "policy"}
 
 
 @dataclass(frozen=True)
@@ -29,7 +32,8 @@ class PricePolicy:
 class ZoneState:
     price: float
     last_change_t: float | None = None
-    last_logged_code: str | None = None
+    last_logged_category: str | None = None
+    last_logged_t: float | None = None
 
 
 DEFAULT_POLICY = PricePolicy()
@@ -131,17 +135,21 @@ class PricingAgent:
         return {**decision, "explanation": engine_explanation(decision), "explained_by": f"engine ({skipped})"}
 
     def step(self, obs: dict, lot_zones: list[str]) -> list[dict]:
-        """Decisions worth logging: every change, and a hold only when its reason code differs from the last."""
+        """Decisions worth logging: every change, and a hold when its category ("frame" or "policy") differs from
+        the last logged decision's or the zone has logged nothing for HOLD_LOG_INTERVAL_S."""
         logged = []
+        t = obs["t"]
         for zone in lot_zones:
             state = self.states.get(zone, ZoneState(price=self.policy.base))
             decision = decide(zone, obs, state, self.policy)
             if decision["action"] != "hold":
-                self.states[zone] = ZoneState(decision["new_price"], obs["t"], decision["code"])
+                self.states[zone] = ZoneState(decision["new_price"], t, "change", t)
                 logged.append(self._explain(decision))
                 continue
-            if decision["code"] != state.last_logged_code:
-                self.states[zone] = replace(state, last_logged_code=decision["code"])
+            category = HOLD_CATEGORY[decision["code"]]
+            quiet = state.last_logged_t is None or t - state.last_logged_t >= HOLD_LOG_INTERVAL_S
+            if category != state.last_logged_category or quiet:
+                self.states[zone] = replace(state, last_logged_category=category, last_logged_t=t)
                 logged.append(decision)
         return logged
 

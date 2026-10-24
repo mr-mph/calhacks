@@ -60,7 +60,7 @@ def test_decision_records_inputs():
     assert d["policy"]["max_step"] == 0.25
 
 
-def test_agent_logs_changes_and_only_new_hold_reasons():
+def test_agent_logs_changes_and_first_hold():
     agent = PricingAgent(claude=None)
     logged = []
     for i in range(10):
@@ -79,3 +79,40 @@ def test_price_falls_when_lot_empties():
     changes = agent.step(obs(800, 0.2), ["lot-a"])
     assert changes[0]["action"] == "lower"
     assert agent.prices()["lot-a"] < high
+
+
+def test_flipping_policy_holds_log_once_after_a_change():
+    agent = PricingAgent(claude=None)
+    agent.step(obs(0, 0.95), ["lot-a"])
+    logged = agent.step(obs(300, 0.6), ["lot-a"])
+    for i in range(1, 150):
+        logged += agent.step(obs(300 + i * 2.0, 0.6 if i % 2 else 0.95), ["lot-a"])
+    assert [d["code"] for d in logged] == ["lower", "at_target"]
+
+
+def test_same_category_hold_relogged_every_five_minutes():
+    agent = PricingAgent(claude=None)
+    logged = []
+    for i in range(0, 300):
+        logged += agent.step(obs(i * 2.0, 0.95, confidence=0.3, aligned=bool(i % 2)), ["lot-a"])
+    assert [d["t"] for d in logged] == [0.0, 300.0]
+    assert agent.prices() == {"lot-a": 3.0}
+
+
+def test_hold_category_change_logs_at_once():
+    agent = PricingAgent(claude=None)
+    first = agent.step(obs(0, 0.3), ["lot-a"])
+    assert [d["code"] for d in first] == ["at_target"]
+    assert agent.step(obs(2, 0.3), ["lot-a"]) == []
+    assert [d["code"] for d in agent.step(obs(4, 0.3, confidence=0.3), ["lot-a"])] == ["low_confidence"]
+    assert agent.step(obs(6, 0.3, aligned=False), ["lot-a"]) == []
+    assert [d["code"] for d in agent.step(obs(8, 0.3), ["lot-a"])] == ["at_target"]
+
+
+def test_price_changes_always_logged():
+    agent = PricingAgent(claude=None)
+    actions = []
+    for i in range(0, 2400, 2):
+        actions += [d["action"] for d in agent.step(obs(float(i), 1.0 if i < 1200 else 0.1), ["lot-a"])]
+    changes = [a for a in actions if a != "hold"]
+    assert changes.count("raise") == 4 and changes.count("lower") >= 3

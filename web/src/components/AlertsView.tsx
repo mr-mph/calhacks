@@ -5,6 +5,7 @@ import { api } from "../../convex/_generated/api";
 import type { Alert } from "../lib/data";
 import { usePatrolCode, WRONG_PATROL_CODE } from "../lib/patrol";
 import { ago, clock, useNow } from "../lib/time";
+import { JiraStatus } from "./JiraStatus";
 import { Button, Caption, Card, Chip, EmptyState, type Tone } from "./ui";
 
 const SEVERITY: Record<NonNullable<Alert["severity"]>, { tone: Tone; label: string }> = {
@@ -138,7 +139,14 @@ function OpenAlert({ alert, now, code, onWrongCode }: OpenAlertProps) {
   );
 }
 
-function ReviewedAlert({ alert }: { alert: Alert }) {
+type ReviewedAlertProps = {
+  alert: Alert;
+  now: number;
+  code: string | null;
+  onWrongCode: () => void;
+};
+
+function ReviewedAlert({ alert, now, code, onWrongCode }: ReviewedAlertProps) {
   const isConfirmed = alert.status === "confirmed";
   return (
     <li className="flex flex-col gap-1 rounded-[16px] bg-surface p-3">
@@ -147,6 +155,7 @@ function ReviewedAlert({ alert }: { alert: Alert }) {
         <Caption>{clock(alert.reviewedAt ?? alert.t)}</Caption>
       </div>
       <p className="text-sm text-muted">{alert.text}</p>
+      <JiraStatus alert={alert} now={now} code={code} onWrongCode={onWrongCode} />
     </li>
   );
 }
@@ -168,14 +177,19 @@ export function AlertsView() {
     patrol.forget();
   }
 
+  const hasUnsent = alerts.reviewed.some((a) => a.status === "confirmed" && a.jira?.status !== "sent");
+  const showCodeForm = !patrol.code && (alerts.open.length > 0 || hasUnsent);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h1 className="font-display text-2xl">Beach alerts</h1>
         <p className="max-w-[65ch] text-sm text-muted">
-          Claude drafts these from the frame and the counts. Nothing goes out until a patrol member confirms it.
+          Claude drafts these from the frame and the counts. Nothing goes out until a patrol member confirms it;
+          a confirmed alert opens or updates an incident in the patrol's Jira.
         </p>
       </div>
+      {showCodeForm && <PatrolCodeForm wasWrong={wasWrong} onSave={handleSaveCode} />}
       {alerts.open.length === 0 ? (
         <EmptyState icon={<BellSimple size={28} aria-hidden="true" />} title="No alerts to review">
           When the camera sees a possible rip current or people in the water near one, a drafted alert shows up here
@@ -183,7 +197,6 @@ export function AlertsView() {
         </EmptyState>
       ) : (
         <div className="flex flex-col gap-3">
-          {!patrol.code && <PatrolCodeForm wasWrong={wasWrong} onSave={handleSaveCode} />}
           {alerts.open.map((a) => (
             <OpenAlert key={a._id} alert={a} now={now} code={patrol.code} onWrongCode={handleWrongCode} />
           ))}
@@ -194,7 +207,7 @@ export function AlertsView() {
           <h2 className="text-sm font-semibold text-muted">Recently reviewed</h2>
           <ul className="flex flex-col gap-2">
             {alerts.reviewed.map((a) => (
-              <ReviewedAlert key={a._id} alert={a} />
+              <ReviewedAlert key={a._id} alert={a} now={now} code={patrol.code} onWrongCode={handleWrongCode} />
             ))}
           </ul>
         </section>
