@@ -33,7 +33,7 @@ export function LiveView({ openAlerts }: Props) {
         </a>
       )}
 
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         {frame ? (
           <FrameView frame={frame} observation={observation} site={site} />
         ) : (
