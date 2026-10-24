@@ -7,7 +7,7 @@ After=local-fs.target
 Type=simple
 User=__USER__
 Group=__USER__
-SupplementaryGroups=i2c gpio video dialout
+SupplementaryGroups=i2c gpio video
 WorkingDirectory=/opt/balloon
 EnvironmentFile=-/etc/default/balloon
 Environment=PYTHONUNBUFFERED=1
