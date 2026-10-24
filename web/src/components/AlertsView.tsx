@@ -50,6 +50,7 @@ function PatrolCodeForm({ wasWrong, onSave }: PatrolCodeFormProps) {
           id="patrol-code"
           type="password"
           autoComplete="off"
+          autoFocus={wasWrong}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           className="min-h-11 min-w-0 flex-1 rounded-full bg-surface-2 px-4 font-mono text-sm"
