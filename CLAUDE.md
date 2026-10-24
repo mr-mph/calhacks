@@ -84,6 +84,6 @@ ssh tarun@balloon.local journalctl -fu balloon-telemetry
   installed from apt, confirm ffmpeg records from the ustreamer stream, confirm the Grove ADC address (0x04 vs 0x08).
 - 2026-10-23: `flash.sh` writes Pi OS Lite 64-bit headless (hostname, user, SSH key, Wi-Fi via cloud-init).
   `wifi-watchdog.sh` fixed: it matched "disconnected" as connected, so it never fired. Helium and lift numbers
-  are in `docs/launch-plan.md`.
+  are in `docs/launch-plan.md`. Why a balloon, what we infer, and sponsor-track fit: `docs/pitch.md`.
 - Ideas not started: metre scale bar on the mosaic (footprint = 2*h*tan(FOV/2)), tilt-rectified stills,
   Claude-vision captions from snapshots (laptop side), ESP32 tether-length encoder, servo pan (code exists, off).
