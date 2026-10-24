@@ -8,20 +8,11 @@ DB="${SMOKE_DB:-balloon-market-smoke}"
 SECRET="smoke-secret-$(date +%s)-abcdefghijklmnop"
 MICRO=1000000
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=lib.sh
+source "$HERE/scripts/lib.sh"
 
 pass() { printf '  ok   %s\n' "$1"; }
 fail() { printf '  FAIL %s\n' "$1"; exit 1; }
-
-new_token() { curl -sf -X POST "$HOST/v1/identity" | jq -r .token; }
-
-# call TOKEN REDUCER JSON_ARGS -> prints "HTTP_CODE BODY"
-call() {
-  local out code
-  out=$(curl -s -w '\n%{http_code}' -X POST "$HOST/v1/database/$DB/call/$2" \
-    -H "Authorization: Bearer $1" -H 'Content-Type: application/json' -d "$3")
-  code=$(tail -n1 <<<"$out")
-  printf '%s %s' "$code" "$(sed '$d' <<<"$out")"
-}
 
 expect_ok() {
   local res; res=$(call "$@")
@@ -35,8 +26,6 @@ expect_err() {
   pass "$2 rejected: ${res#* }"
 }
 
-sql() { curl -sf -X POST "$HOST/v1/database/$DB/sql" -d "$1" | jq -c '.[0].rows'; }
-scalar() { sql "$1" | jq -r '.[0][0]'; }
 balance_of() { scalar "SELECT balance_micro FROM account WHERE name = '$1'"; }
 
 echo "publishing $DB to $HOST"
