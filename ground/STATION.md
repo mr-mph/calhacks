@@ -214,3 +214,22 @@ Image tests use real drone frames from the public VisDrone2019 val set, download
 
 Markets on flows over a period ("people crossing between 4 and 5 PM") need a crossing counter; today's markets settle on counts at one
 moment.
+
+## Satellite comparison
+
+`satellite.py` fetches free imagery from Microsoft Planetary Computer (anonymous, no key) and sets it beside a balloon frame.
+
+```bash
+.venv/bin/python satellite.py fetch --lat 37.7598 --lon -122.5107 --radius-m 150 --out out/satellite/ocean-beach
+.venv/bin/python satellite.py compare --frame frame.jpg --obs obs.json --summary out/satellite/ocean-beach/summary.json --out out/compare
+```
+
+`fetch` takes the newest Sentinel-2 L2A scene under 20% cloud (10 m, `visual` asset) and the newest NAIP scene
+(about 0.6 m, US only), crops both to the square around the point, and writes `sentinel2.png`, `naip.png` and
+`summary.json` (source, acquired_at, age_days, gsd_m, cloud_cover, bbox, pixel_size_of_a_car_px, png_path). Cloud
+cover is the whole scene's, not the crop's. NAIP is a yearly survey, so its age is often years.
+
+`compare` takes a frame and an observation record (`alt_m`, `counts`, `t`) and writes `compare.png` (balloon and
+satellite panels, nearest-neighbour upscaled) and `compare.json`: balloon cm/px from altitude and `--hfov-deg`
+(default 70), data age in seconds against the satellite's in days, and whether a 4.5 m car spans at least
+`--min-car-px` pixels (default 8, an assumption written into the JSON). The crops are not registered to the frame.
