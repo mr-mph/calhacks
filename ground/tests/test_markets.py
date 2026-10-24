@@ -2,8 +2,16 @@ import math
 
 import pytest
 
-from agents.markets import (MarketAgent, lmsr_buy, lmsr_cost, lmsr_max_loss, lmsr_opening_q, lmsr_prices, settle,
-                            validate_proposal)
+from agents.markets import (
+    MarketAgent,
+    lmsr_buy,
+    lmsr_cost,
+    lmsr_max_loss,
+    lmsr_opening_q,
+    lmsr_prices,
+    settle,
+    validate_proposal,
+)
 
 ZONES = {"lot-a": {"id": "lot-a", "kind": "lot", "capacity": 48}, "water": {"id": "water", "kind": "water"}}
 MARKET = {"id": "m1", "question": "40 or more cars in lot-a", "zone": "lot-a", "field": "car",

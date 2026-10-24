@@ -32,6 +32,9 @@ class ZoneState:
     last_logged_code: str | None = None
 
 
+DEFAULT_POLICY = PricePolicy()
+
+
 def target_price(occupancy: float, policy: PricePolicy) -> float:
     occ = min(max(occupancy, 0.0), 1.0)
     if occ <= policy.surge_from:
@@ -110,7 +113,7 @@ EXPLAIN_SYSTEM = (
 
 
 class PricingAgent:
-    def __init__(self, claude: Claude | None, policy: PricePolicy = PricePolicy()):
+    def __init__(self, claude: Claude | None, policy: PricePolicy = DEFAULT_POLICY):
         self.claude = claude
         self.policy = policy
         self.states: dict[str, ZoneState] = {}
@@ -128,7 +131,7 @@ class PricingAgent:
         return {**decision, "explanation": engine_explanation(decision), "explained_by": f"engine ({skipped})"}
 
     def step(self, obs: dict, lot_zones: list[str]) -> list[dict]:
-        """Decisions worth logging: every change, and a hold only when its reason code differs from the last one logged."""
+        """Decisions worth logging: every change, and a hold only when its reason code differs from the last."""
         logged = []
         for zone in lot_zones:
             state = self.states.get(zone, ZoneState(price=self.policy.base))
