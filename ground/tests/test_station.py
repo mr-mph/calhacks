@@ -64,6 +64,7 @@ def test_replay_reads_telemetry(tmp_path, real_images):
 
 def test_replay_end_to_end(tmp_path, real_images, detector, monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("XAI_API_KEY", raising=False)
     monkeypatch.setenv("BALLOON_ENV_FILE", str(tmp_path / "missing"))
     monkeypatch.setenv("BALLOON_WEIGHTS", detector.weights)
     session = make_session(tmp_path, real_images)

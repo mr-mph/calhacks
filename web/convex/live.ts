@@ -65,7 +65,8 @@ export const lots = query({
 async function withFrameUrl(ctx: QueryCtx, alert: Doc<"alerts">) {
   const frame = alert.frameId ? await ctx.db.get(alert.frameId) : null;
   const frameUrl = frame ? await ctx.storage.getUrl(frame.storageId) : null;
-  return { ...alert, frameUrl };
+  const audioUrl = alert.audioId ? await ctx.storage.getUrl(alert.audioId) : null;
+  return { ...alert, frameUrl, audioUrl };
 }
 
 export const alerts = query({

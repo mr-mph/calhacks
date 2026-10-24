@@ -91,6 +91,9 @@ export const alertInputFields = {
   zone: v.optional(v.string()),
   confidence: v.optional(v.number()),
   counts: v.optional(v.object({ person_water: v.number(), person_beach: v.number() })),
+  // The alert read aloud (MP3 in Convex file storage) and who voiced it, e.g. "Grok TTS (rex)".
+  audioId: v.optional(v.id("_storage")),
+  voice: v.optional(v.string()),
 };
 
 // After this long in "sending" the send is presumed lost and the patrol can retry it.

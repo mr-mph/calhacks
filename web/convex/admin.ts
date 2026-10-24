@@ -49,6 +49,7 @@ export const purgeSession = internalMutation({
       .withIndex("by_session_t", (q) => q.eq("session", session))
       .take(BATCH);
 
+    for (const alert of alerts.slice(0, BATCH)) if (alert.audioId) await ctx.storage.delete(alert.audioId);
     for (const doc of [...decisions, ...prices, ...alerts.slice(0, BATCH)]) await ctx.db.delete(doc._id);
     for (const f of frames) {
       await ctx.storage.delete(f.storageId);
