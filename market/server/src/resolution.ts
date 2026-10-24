@@ -5,6 +5,7 @@ import { requireFinite, requireMarket, requireOracle, requireText } from './guar
 import { MICRO_PER_CREDIT } from './lmsr';
 
 const MAX_EXPLANATION_LENGTH = 1000;
+const MAX_CLOCK_SKEW_SECONDS = 60;
 
 export const postObservation = spacetimedb.reducer(
   {
@@ -18,10 +19,14 @@ export const postObservation = spacetimedb.reducer(
   (ctx, args) => {
     requireOracle(ctx);
     const confidence = requireFinite(args.confidence, 'confidence');
+    const nowSeconds = Number(ctx.timestamp.microsSinceUnixEpoch) / 1_000_000;
+    if (requireFinite(args.t, 't') > nowSeconds + MAX_CLOCK_SKEW_SECONDS) {
+      throw new SenderError('t is in the future; check the station clock');
+    }
     if (confidence < 0 || confidence > 1) throw new SenderError('confidence must be 0 to 1');
     const row = ctx.db.observation.insert({
       id: 0n,
-      t: requireFinite(args.t, 't'),
+      t: args.t,
       zone: requireText(args.zone, 'zone', 64),
       metric: requireText(args.metric, 'metric', 64),
       value: requireFinite(args.value, 'value'),

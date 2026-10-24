@@ -47,6 +47,8 @@ echo "markets"
 NOW=$(date +%s)
 expect_err 'only an oracle' "$ALICE" create_market \
   "[\"sneaky\",\"lot-a\",\"car_count\",\">=\",40,$((NOW + 60)),100]"
+expect_err 'within 7 days' "$ORACLE" create_market \
+  "[\"far\",\"lot-a\",\"car_count\",\">=\",40,1e300,100]"
 expect_ok "$ORACLE" create_market \
   "[\"40+ cars in lot A at close?\",\"lot-a\",\"car_count\",\">=\",40,$((NOW + 6)),100]"
 expect_ok "$ORACLE" create_market \
@@ -64,6 +66,7 @@ pass "4 trades placed"
 expect_err 'not enough credits' "$BOB" buy "[$VOID_ID,\"no\",900]"
 expect_err 'shares must be' "$BOB" buy "[$SETTLE_ID,\"yes\",0]"
 expect_err "side must be" "$BOB" buy "[$SETTLE_ID,\"maybe\",1]"
+expect_err 'oracles cannot trade' "$ORACLE" buy "[$SETTLE_ID,\"yes\",1]"
 sql "SELECT market_id, side, shares, cost_micro, price_yes_after FROM trade" | jq -r '.[] | "  trade market=\(.[0]) \(.[1]) x\(.[2]) cost=\(.[3] / 1000000) credits, P(yes) after=\(.[4] * 1000 | round / 10)%"'
 
 echo "observations"
@@ -72,6 +75,7 @@ for v in 39 41 42 43; do
 done
 expect_err 'only an oracle' "$BOB" post_observation "[$NOW,\"lot-a\",\"car_count\",99,0.9,\"x\"]"
 expect_err 'confidence must be' "$ORACLE" post_observation "[$NOW,\"lot-a\",\"car_count\",1,1.5,\"x\"]"
+expect_err 't is in the future' "$ORACLE" post_observation "[1e300,\"lot-a\",\"car_count\",1,0.9,\"x\"]"
 pass "$(scalar 'SELECT COUNT(*) AS n FROM observation') observations stored"
 
 echo "settlement"

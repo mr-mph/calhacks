@@ -70,6 +70,9 @@ An identity becomes an oracle by calling `claim_oracle(secret)` with the value o
 - Each service gets its own identity (the station, the market agent), so a leaked station token does not expose
   the publisher's CLI login, which can delete the database. Every market, observation and settlement records
   which identity made it.
+- Oracles cannot trade: whoever reports the settling value holds no position in it.
+- Known limit: identities are free, so one person can register many accounts and collect 1000 credits each. Fine
+  for play money; gate `register` behind a join code if a leaderboard ever matters.
 - Rotate the secret without redeploying code: `ORACLE_SECRET=<new> spacetime publish <db> --env-only`.
   Rotation stops new claims; identities that already claimed stay oracles. There is no revoke reducer yet; wiping
   the database (`--delete-data=always`) is the only way to remove one.
@@ -95,8 +98,8 @@ Reducer arguments, in order:
 | Reducer | Args |
 |---|---|
 | `claim_oracle` | `secret` |
-| `create_market` | `question, zone, metric, comparator (">=" ">" "<=" "<"), threshold, close_at_unix (seconds), b (10..10000)` |
-| `post_observation` | `t (unix seconds), zone, metric, value, confidence (0..1), frame` |
+| `create_market` | `question, zone, metric, comparator (">=" ">" "<=" "<"), threshold, close_at_unix (seconds, within 7 days), b (10..10000)` |
+| `post_observation` | `t (unix seconds, at most 60 s ahead of the server clock), zone, metric, value, confidence (0..1), frame` |
 | `settle` | `market_id, value, explanation` |
 | `void_market` | `market_id, reason` |
 | `register` / `buy` | `name` / `market_id, side ("yes" or "no"), shares (1..1000)` (phones use these) |

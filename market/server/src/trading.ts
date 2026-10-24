@@ -9,6 +9,7 @@ const MIN_B = 10;
 const MAX_B = 10_000;
 const MAX_SHARES_PER_TRADE = 1_000n;
 const MICROS_PER_SECOND = 1_000_000;
+const MAX_MARKET_LIFETIME_SECONDS = 7 * 24 * 3600;
 
 function bookOf(row: { qYes: bigint; qNo: bigint; b: number }): Book {
   return { qYes: Number(row.qYes), qNo: Number(row.qNo), b: row.b };
@@ -19,8 +20,12 @@ function parseSide(side: string): Side {
   return side;
 }
 
-function unixToTimestamp(seconds: number): Timestamp {
-  return new Timestamp(BigInt(Math.round(requireFinite(seconds, 'close_at') * MICROS_PER_SECOND)));
+function closeTimestamp(ctx: Ctx, seconds: number): Timestamp {
+  const nowSeconds = Number(ctx.timestamp.microsSinceUnixEpoch) / MICROS_PER_SECOND;
+  const at = requireFinite(seconds, 'close_at');
+  if (at <= nowSeconds) throw new SenderError('close_at must be in the future');
+  if (at > nowSeconds + MAX_MARKET_LIFETIME_SECONDS) throw new SenderError('close_at must be within 7 days');
+  return new Timestamp(BigInt(Math.round(at * MICROS_PER_SECOND)));
 }
 
 export const createMarket = spacetimedb.reducer(
@@ -39,10 +44,7 @@ export const createMarket = spacetimedb.reducer(
       throw new SenderError(`comparator must be one of ${COMPARATORS.join(' ')}`);
     }
     if (args.b < MIN_B || args.b > MAX_B) throw new SenderError(`b must be ${MIN_B} to ${MAX_B}`);
-    const closeAt = unixToTimestamp(args.closeAtUnix);
-    if (closeAt.microsSinceUnixEpoch <= ctx.timestamp.microsSinceUnixEpoch) {
-      throw new SenderError('close_at must be in the future');
-    }
+    const closeAt = closeTimestamp(ctx, args.closeAtUnix);
     const subsidyMicro = toMicroCeil(maxSubsidy(args.b));
     const row = ctx.db.market.insert({
       id: 0n,
@@ -99,6 +101,8 @@ function addToPosition(ctx: Ctx, marketId: bigint, side: Side, shares: bigint, c
 export const buy = spacetimedb.reducer(
   { marketId: t.u64(), side: t.string(), shares: t.u64() },
   (ctx, { marketId, side, shares }) => {
+    // Oracles report the value that settles markets, so they may not hold positions in them.
+    if (ctx.db.oracle.identity.find(ctx.sender)) throw new SenderError('oracles cannot trade');
     const buyer = requireAccount(ctx);
     const row = requireMarket(ctx, marketId);
     const chosen = parseSide(side);
