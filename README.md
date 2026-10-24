@@ -25,6 +25,10 @@ Data layout on the SD card: `/data/balloon/sessions/<YYYYmmdd-HHMMSS>/`
 
 ## 1. Flash the Pi (once)
 
+Scripted: `brew install --cask raspberry-pi-imager`, put the microSD in a reader, then
+`./flash.sh /dev/diskN` (find N with `diskutil list`). It asks for the Wi-Fi name/password and the Pi password and
+writes Raspberry Pi OS Lite (64-bit) as `tarun@balloon.local` with SSH on. Or by hand in the Imager app:
+
 1. `brew install --cask raspberry-pi-imager`, put the microSD in a reader.
 2. Raspberry Pi Imager → Pi 4 → **Raspberry Pi OS (64-bit)** → your card → Next → **Edit settings**:
    hostname `balloon`, user `tarun` + password, Wi-Fi = the **phone hotspot** SSID/password, locale;
