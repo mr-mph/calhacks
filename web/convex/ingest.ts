@@ -8,6 +8,7 @@ import {
   priceFields,
   siteFields,
 } from "./validators";
+import { requireEnvSecret } from "./secrets";
 
 const FRAMES_KEPT = 30;
 const MAX_BATCH = 200;
@@ -17,13 +18,7 @@ const decisionInput = v.object(decisionFields);
 const frameInput = v.object(frameFields);
 
 function checkSecret(given: string): void {
-  const expected = process.env.INGEST_SECRET;
-  if (!expected) throw new ConvexError("Wrong ingest secret");
-  let diff = given.length ^ expected.length;
-  for (let i = 0; i < expected.length; i++) {
-    diff |= expected.charCodeAt(i) ^ given.charCodeAt(i % Math.max(given.length, 1));
-  }
-  if (diff !== 0) throw new ConvexError("Wrong ingest secret");
+  requireEnvSecret("INGEST_SECRET", given, "Wrong ingest secret");
 }
 
 function checkSize(name: string, items: unknown[] | undefined): void {
