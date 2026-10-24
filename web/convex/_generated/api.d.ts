@@ -11,6 +11,7 @@
 import type * as admin from "../admin.js";
 import type * as alerts from "../alerts.js";
 import type * as ingest from "../ingest.js";
+import type * as jira from "../jira.js";
 import type * as live from "../live.js";
 import type * as secrets from "../secrets.js";
 import type * as validators from "../validators.js";
@@ -25,6 +26,7 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   alerts: typeof alerts;
   ingest: typeof ingest;
+  jira: typeof jira;
   live: typeof live;
   secrets: typeof secrets;
   validators: typeof validators;

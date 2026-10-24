@@ -5,6 +5,7 @@ import {
   alertStatus,
   decisionFields,
   frameFields,
+  jiraFields,
   observationFields,
   priceFields,
   siteFields,
@@ -36,6 +37,7 @@ export default defineSchema({
     status: alertStatus,
     frameId: v.optional(v.id("frames")),
     reviewedAt: v.optional(v.number()),
+    jira: v.optional(jiraFields),
   })
     .index("by_t", ["t"])
     .index("by_status_t", ["status", "t"]),

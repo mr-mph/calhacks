@@ -5,6 +5,7 @@ const PRICE_POINTS = 30;
 const DECISIONS_PER_LOT = 50;
 const OPEN_ALERTS = 20;
 const REVIEWED_ALERTS = 6;
+const CONFIRMED_SCAN = 50;
 
 async function latestSite(ctx: QueryCtx): Promise<Doc<"sites"> | null> {
   return await ctx.db.query("sites").withIndex("by_updated").order("desc").first();
@@ -79,15 +80,18 @@ export const alerts = query({
       .query("alerts")
       .withIndex("by_status_t", (q) => q.eq("status", "confirmed"))
       .order("desc")
-      .take(REVIEWED_ALERTS);
+      .take(CONFIRMED_SCAN);
     const dismissed = await ctx.db
       .query("alerts")
       .withIndex("by_status_t", (q) => q.eq("status", "dismissed"))
       .order("desc")
       .take(REVIEWED_ALERTS);
-    const reviewed = [...confirmed, ...dismissed]
+    const recent = [...confirmed, ...dismissed]
       .sort((a, b) => (b.reviewedAt ?? b.t) - (a.reviewedAt ?? a.t))
       .slice(0, REVIEWED_ALERTS);
+    // A confirmed alert that hasn't reached Jira stays listed until it does, so a failure is never hidden.
+    const unsent = confirmed.filter((a) => a.jira && a.jira.status !== "sent" && !recent.includes(a));
+    const reviewed = [...unsent, ...recent];
     return {
       open: await Promise.all(open.map((a) => withFrameUrl(ctx, a))),
       reviewed: await Promise.all(reviewed.map((a) => withFrameUrl(ctx, a))),
