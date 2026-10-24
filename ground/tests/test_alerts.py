@@ -3,7 +3,7 @@ import base64
 import cv2
 import numpy as np
 
-from agents.alerts import MAX_SIDE_PX, AlertWriter, image_block, people_near_rip, trigger
+from agents.alerts import MAX_SIDE_PX, AlertWriter, busiest_zone, image_block, people_near_rip, trigger
 
 SITE = {"zones": [{"id": "surf", "kind": "water", "polygon": [[0, 0], [10, 0], [10, 10]]}]}
 DETECTIONS = [
@@ -53,3 +53,10 @@ def test_alerts_are_rate_limited_and_low_confidence_is_flagged(real_images):
     assert writer.check(obs(t=60), DETECTIONS, image) is None
     late = writer.check(obs(t=200, confidence=0.3), DETECTIONS, image)
     assert late["low_confidence"] and late["uncertainty"].startswith("Low-confidence frame")
+
+
+def test_busiest_water_zone_names_the_alert():
+    frame = {"zones": {"north": {"person": 1}, "south": {"person": 4}}}
+    assert busiest_zone(frame, ["north", "south"]) == "south"
+    assert busiest_zone({"zones": {}}, ["north", "south"]) == "north"
+    assert busiest_zone(frame, []) is None

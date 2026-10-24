@@ -109,11 +109,19 @@ def alert_severity(record: dict) -> str:
     return "critical" if record.get("trigger", {}).get("people_near_rip") else "warning"
 
 
+def alert_counts(record: dict) -> dict:
+    in_water = int(record.get("trigger", {}).get("people_in_water_zone") or record.get("people_in_water") or 0)
+    everyone = int(record.get("counts", {}).get("person", 0))
+    return {"person_water": in_water, "person_beach": max(0, everyone - in_water)}
+
+
 def convex_alert(record: dict) -> dict:
+    """Carries what Balloon Patrol (Jira) needs when a patrol member confirms the alert on the live map."""
     return clean({
         "t": record["t"], "session": record.get("session"), "text": record["alert"],
         "uncertainty": record["uncertainty"], "severity": alert_severity(record), "frame": record.get("frame"),
-        "model": record.get("written_by"),
+        "model": record.get("written_by"), "zone": record.get("zone"), "confidence": record.get("confidence"),
+        "counts": alert_counts(record),
     })
 
 

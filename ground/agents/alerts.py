@@ -76,6 +76,13 @@ def water_people(obs: dict, water_zones: list[str]) -> int:
     return sum(obs.get("zones", {}).get(z, {}).get("person", 0) for z in water_zones)
 
 
+def busiest_zone(obs: dict, water_zones: list[str]) -> str | None:
+    """The water zone with the most people, for the patrol's Jira dedupe; the first one when all are empty."""
+    if not water_zones:
+        return None
+    return max(water_zones, key=lambda z: obs.get("zones", {}).get(z, {}).get("person", 0))
+
+
 def trigger(obs: dict, detections: list[dict], water_zones: list[str]) -> dict | None:
     in_water = water_people(obs, water_zones)
     if not obs["rip"] and in_water == 0:
@@ -134,7 +141,7 @@ class AlertWriter:
         if low:
             uncertainty = f"Low-confidence frame ({obs['confidence']:.2f}); treat as a lead, not a finding. {uncertainty}"
         return {"agent": "alerts", "t": obs["t"], "session": obs["session"], "frame": obs["frame"],
-                "status": "needs_review", "alert": written["alert"], "uncertainty": uncertainty,
+                "zone": busiest_zone(obs, self.water_zones), "status": "needs_review", "alert": written["alert"], "uncertainty": uncertainty,
                 "rip_visible": written["rip_visible"], "people_in_water": written["people_in_water"],
                 "trigger": trig, "counts": obs["counts"], "rip": obs["rip"], "confidence": obs["confidence"],
                 "low_confidence": low, "written_by": author}
