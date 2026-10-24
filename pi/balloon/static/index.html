@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Balloon Telemetry</title>
+<link rel="stylesheet" href="/static/vendor/uPlot.min.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="dot" id="conn-dot" aria-hidden="true"></span>
+    <h1>Balloon Payload</h1>
+    <span class="chip" id="conn-text">connecting…</span>
+  </div>
+  <div class="chips">
+    <span class="chip" id="chip-session" title="Session">session —</span>
+    <span class="chip" id="chip-samples" title="Samples logged">0 samples</span>
+    <span class="chip" id="chip-disk" title="Free space on SD card">disk —</span>
+    <span class="chip" id="chip-cpu" title="Pi CPU temperature">cpu —</span>
+    <span class="chip" id="chip-rssi" title="Wi-Fi signal">wifi —</span>
+    <button class="btn ghost" id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">◐</button>
+  </div>
+</header>
+
+<section class="tiles" id="tiles" aria-label="Latest readings"></section>
+
+<main class="grid">
+  <section class="card camera" id="camera-card">
+    <div class="card-head">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-view="live" role="tab">Live</button>
+        <button class="tab" data-view="mosaic" role="tab">Map</button>
+      </div>
+      <div class="actions">
+        <input id="mark-note" type="text" placeholder="note (optional)" aria-label="Marker note">
+        <button class="btn" id="btn-mark" title="Record a timestamped marker in markers.csv">Mark</button>
+        <button class="btn" id="btn-zero" title="Re-zero altitude to the current pressure">Zero alt</button>
+        <a class="btn ghost" id="btn-snap" href="/camera/snapshot.jpg" target="_blank" rel="noopener">Snapshot</a>
+      </div>
+    </div>
+    <div class="view" id="view-live">
+      <img id="cam" alt="Live camera stream">
+      <div class="overlay" id="cam-overlay">camera offline</div>
+    </div>
+    <div class="view hidden" id="view-mosaic">
+      <img id="mosaic" alt="Stitched map from the downward camera">
+      <div class="overlay" id="mosaic-overlay">no map yet</div>
+    </div>
+    <div class="servo hidden" id="servo-row">
+      <label for="servo">Pan</label>
+      <input id="servo" type="range" min="0" max="180" value="90">
+      <span id="servo-val">90°</span>
+    </div>
+  </section>
+
+  <section class="card controls">
+    <div class="card-head">
+      <h2>Charts</h2>
+      <div class="seg" id="window-seg" role="group" aria-label="Time window">
+        <button data-win="60">1m</button>
+        <button data-win="300" class="active">5m</button>
+        <button data-win="900">15m</button>
+        <button data-win="1800">30m</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="charts" id="charts"></section>
+
+  <section class="card table-card">
+    <details>
+      <summary>All latest values (table)</summary>
+      <table id="values-table"><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody></tbody></table>
+    </details>
+  </section>
+
+  <section class="card table-card">
+    <details>
+      <summary>Sensors &amp; sessions</summary>
+      <div id="sensors-info" class="muted"></div>
+      <table id="sessions-table"><thead><tr><th>Session</th><th>Size</th><th>Video</th><th>Stills</th><th>Files</th></tr></thead><tbody></tbody></table>
+    </details>
+  </section>
+</main>
+
+<div id="tooltip" class="tooltip hidden" role="status"></div>
+<script src="/static/vendor/uPlot.iife.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
