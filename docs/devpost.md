@@ -87,7 +87,7 @@ use the balloon's sharp labels as ground truth to calibrate satellite counts of 
 ## Built with
 
 raspberry-pi, python, ultralytics-yolo, opencv, claude, anthropic-api, convex, spacetimedb, typescript, react, vite,
-tailwind, atlassian-forge, jira, confluence, vercel
+tailwind, atlassian-forge, jira, confluence, vercel, grok, xai, cursor
 
 ## Links
 
@@ -114,4 +114,5 @@ tailwind, atlassian-forge, jira, confluence, vercel
   Computer and put it next to the balloon's view. Sentinel-2 was 9 days old at 10 m per pixel, so a car is less than
   half a pixel; the sharpest free aerial photo (NAIP, 0.6 m) was from May 2022. The balloon sees about 7 cm per pixel,
   every 2 seconds, so its labels can serve as ground truth for satellite counts of the same place
-  (`ground/satellite.py`). [Built with Cursor; Grok voice reads confirmed alerts aloud.]
+  (`ground/satellite.py`). Grok's voice API (`/v1/tts`) reads every beach alert aloud on the patrol's phone, so
+  nobody has to look at a screen while watching the water. [Built with Cursor: say how the team used it.]
