@@ -1,4 +1,6 @@
-# Count Market
+# Overhead Markets
+
+Live at maincloud database **`overhead-market`** (`wss://maincloud.spacetimedb.com`).
 
 Prediction markets on what the balloon camera counts ("40 or more cars in lot A at 5:00 PM?"). People bet play
 credits from their phones; the ground station posts counts and settles. SpacetimeDB is the whole backend: every
@@ -6,8 +8,9 @@ bet, price, position and settlement is a reducer call, and every phone sees it i
 
 ```
 server/   SpacetimeDB module (TypeScript): tables, reducers, LMSR market maker
-web/      Phone page (Vite + TypeScript, no framework) subscribed to the module
+web/      Phone-first page (Vite + TypeScript, no framework) subscribed to the module, styled per docs/design.md
 scripts/  smoke.sh (end-to-end test), seed-demo.sh (demo data), lib.sh (curl helpers)
+assets/generated/  screenshots of the page at 390 px and desktop
 ```
 
 ## Run locally
@@ -26,13 +29,23 @@ scripts/seed-demo.sh                             # optional: 3 markets, trades, 
 cd web && pnpm install && pnpm dev               # http://localhost:5173, and http://<laptop-ip>:5173 on phones
 ```
 
-The page connects to `ws://<page host>:3000` and database `balloon-market` unless `VITE_SPACETIME_URI` /
-`VITE_SPACETIME_DB` say otherwise. After changing the module, run `pnpm generate` in `web/` to refresh the bindings.
+Which database the page talks to is fixed at build time (`web/src/config.ts`):
 
-Run the end-to-end test (publishes a throwaway `balloon-market-smoke` database and wipes it each time):
+| Command | Server | Database |
+|---|---|---|
+| `pnpm dev` | `ws://<page host>:3000` (the laptop, also from phones on the LAN) | `balloon-market` |
+| `pnpm dev:cloud`, `pnpm build` | `wss://maincloud.spacetimedb.com` | `overhead-market` |
+
+`VITE_SPACETIME_URI` and `VITE_SPACETIME_DB` override either. `VITE_LIVE_URL` and `VITE_ALERTS_URL` point the Live and
+Alerts tabs at the map app; without them those tabs show as not connected. After changing the module, run
+`pnpm generate` in `web/` to refresh the bindings.
+
+Run the end-to-end test. It publishes a throwaway database and wipes it each run, so it never touches real data:
 
 ```bash
-scripts/smoke.sh
+scripts/smoke.sh                                                    # local, database balloon-market-smoke
+SPACETIME_HOST=https://maincloud.spacetimedb.com SMOKE_DB=overhead-market-smoke SMOKE_CLOSE_SECONDS=25 \
+  scripts/smoke.sh                                                  # maincloud, separate throwaway database
 ```
 
 ## How the market works
@@ -52,6 +65,8 @@ scripts/smoke.sh
 - **Settlement.** `settle(market_id, value, explanation)` takes the observed value; the module applies the market's
   own comparator and threshold, so the oracle reports a number, not a winner. Positions on the winning side get
   1 credit per share. `void_market(market_id, reason)` refunds every position exactly what it paid.
+- **Why.** `create_market` takes a one-sentence `rationale` from the market agent (why this threshold, why now).
+  The page shows it as the card's "Why" line, then shows the settlement explanation once the market resolves.
 - **What the station decides.** Per `docs/architecture.md`: the value is the median count over frames within 60 s
   of close with confidence of at least 0.5; too few good frames means void. The explanation should say that in
   plain words. The module stores it on the market and the page shows it.
@@ -82,7 +97,8 @@ shared secret is the simplest option the 2.x API offers that gives each service 
 
 ## HTTP calls for the station (no JS client needed)
 
-All verified against the local server by `scripts/smoke.sh`.
+All verified against the local server and maincloud by `scripts/smoke.sh`. Maincloud issues anonymous tokens from
+`POST /v1/identity` the same way the local server does.
 
 | What | Request |
 |---|---|
@@ -98,7 +114,7 @@ Reducer arguments, in order:
 | Reducer | Args |
 |---|---|
 | `claim_oracle` | `secret` |
-| `create_market` | `question, zone, metric, comparator (">=" ">" "<=" "<"), threshold, close_at_unix (seconds, within 7 days), b (10..10000)` |
+| `create_market` | `question, zone, metric, comparator (">=" ">" "<=" "<"), threshold, close_at_unix (seconds, within 7 days), b (10..10000), rationale` |
 | `post_observation` | `t (unix seconds, at most 60 s ahead of the server clock), zone, metric, value, confidence (0..1), frame` |
 | `settle` | `market_id, value, explanation` |
 | `void_market` | `market_id, reason` |
@@ -116,9 +132,10 @@ curl -X POST http://127.0.0.1:3000/v1/database/balloon-market/call/post_observat
 Python, stdlib only (for `ground/sinks.py`):
 
 ```python
-import json, urllib.error, urllib.request
+import json, os, urllib.error, urllib.request
 
-BASE, DB = "http://127.0.0.1:3000", "balloon-market"
+CFG = json.load(open(os.path.expanduser("~/.config/balloon/spacetime.json")))
+BASE, DB = CFG["host"], CFG["database"]
 
 def new_token() -> str:
     with urllib.request.urlopen(urllib.request.Request(f"{BASE}/v1/identity", method="POST"), timeout=5) as r:
@@ -136,28 +153,38 @@ def call(token: str, reducer: str, *args) -> None:
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"{reducer} rejected ({e.code}): {e.read().decode()}") from e
 
-token = new_token()                      # once; store it next to the station config
-call(token, "claim_oracle", ORACLE_SECRET)
+token = CFG["station_token"]              # already an oracle; new_token() + claim_oracle only for a new service
 call(token, "post_observation", obs["t"], "lot-a", "car_count", obs["zones"]["lot-a"]["car"], obs["confidence"], obs["frame"])
 call(token, "settle", market_id, 42, "Median of 28 frames within 60 s of 5:00 PM was 42 cars (confidence >= 0.8).")
 ```
 
-## Publish to maincloud (after `spacetime login`)
+## Maincloud
 
-Database names on maincloud are global, so pick a specific one.
+Published as `overhead-market` (dashboard: https://spacetimedb.com/overhead-market), owned by the CLI login.
+The station's copy of everything it needs lives outside the repo, readable only by the owner:
 
-```bash
-spacetime login
-cd market
-export ORACLE_SECRET=$(openssl rand -hex 24)     # store it in the team's password manager
-spacetime publish calhacks-balloon-market --server maincloud --module-path server --yes
-
-cd web
-VITE_SPACETIME_URI=wss://maincloud.spacetimedb.com VITE_SPACETIME_DB=calhacks-balloon-market pnpm build
-# serve web/dist from anywhere static (or run `pnpm dev` with the same variables)
+```
+~/.config/balloon/spacetime.json   (chmod 600)
+{ "host", "database", "oracle_secret", "station_identity", "station_token" }
 ```
 
-The station then uses `BASE = "https://maincloud.spacetimedb.com"` and `DB = "calhacks-balloon-market"`.
-Republish after module changes with the same command; add `--delete-data=always` only to wipe everything.
-Not yet verified on maincloud: that it issues tokens from `POST /v1/identity` to anonymous callers the way the
-local server does. If it does not, sign the station in with a SpacetimeAuth token instead.
+`station_token` already holds an oracle identity, so the station just sends it as the bearer token. Other services
+(the market agent) should call `POST /v1/identity` for their own token and `claim_oracle` with `oracle_secret`.
+
+Republish after module changes. Environment values are kept between publishes, so no secret is needed:
+
+```bash
+cd market
+spacetime publish overhead-market --server maincloud --module-path server --yes
+cd web && pnpm generate && pnpm build             # web/dist is static; host it anywhere
+```
+
+Add columns with `.default(...)` so the publish migrates in place. `--delete-data=always` wipes every account,
+market and oracle claim, after which the station must claim again.
+
+Rotate the secret, then update `oracle_secret` in the config file:
+
+```bash
+ORACLE_SECRET=$(openssl rand -hex 24) spacetime publish overhead-market --server maincloud \
+  --module-path server --env-only --yes
+```
