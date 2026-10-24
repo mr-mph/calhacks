@@ -1,14 +1,19 @@
 """Fake sensors for developing the dashboard on a laptop (BALLOON_SIM=1).
-Simulates a balloon slowly rising to ~60 m, swaying in the wind, with plausible noise."""
+Simulates a balloon slowly rising to ~60 m, swaying in the wind, with plausible noise.
+By default it mimics our actual kit: BMP280 barometer, 3-axis accelerometer, Air Quality v1.3 on A4.
+Set BALLOON_SIM_ALL=1 to also fake humidity, light, UV, SGP30 (for testing those code paths)."""
 import math
+import os
 import random
 import time
+
+SIM_ALL = os.environ.get("BALLOON_SIM_ALL", "0") in ("1", "true", "yes")
 
 
 class SimBarometer:
     KIND = "barometer"
     FIELDS = ["pressure_hpa", "temp_c", "humidity_pct"]
-    name = "SIM-BME280"
+    name = "SIM-BME280" if SIM_ALL else "SIM-BMP280"
 
     def __init__(self):
         self.t0 = time.monotonic()
@@ -24,7 +29,7 @@ class SimBarometer:
         h = self.altitude()
         p = self.p0 * (1 - h / 44330.0) ** 5.255 + random.gauss(0, 0.02)
         return {"pressure_hpa": round(p, 3), "temp_c": round(22.0 - 0.0065 * h + random.gauss(0, 0.03), 2),
-                "humidity_pct": round(45 + random.gauss(0, 0.3), 1)}
+                "humidity_pct": round(45 + random.gauss(0, 0.3), 1) if SIM_ALL else None}
 
 
 class SimAccel:
@@ -58,9 +63,11 @@ class SimAnalog:
         light = 62 + 15 * math.sin(t / 20) + random.gauss(0, 0.8)
         uv_mv = max(0, 320 + 80 * math.sin(t / 30) + random.gauss(0, 5))
         aq = int(max(0, 180 + 40 * math.sin(t / 45) + random.gauss(0, 4)))
-        return {"light_raw": int(light * 40.95), "light_pct": round(light, 1), "uv_mv": int(uv_mv),
-                "uv_index": round((307 * uv_mv / 1000) / 200, 2), "aq_raw": aq,
-                "aq_level": "high" if aq > 700 else ("low" if aq > 300 else "fresh")}
+        out = {"aq_raw": aq, "aq_level": "high" if aq > 700 else ("low" if aq > 300 else "fresh")}
+        if SIM_ALL:
+            out.update({"light_raw": int(light * 40.95), "light_pct": round(light, 1), "uv_mv": int(uv_mv),
+                        "uv_index": round((307 * uv_mv / 1000) / 200, 2)})
+        return out
 
 
 class SimGas:
@@ -83,4 +90,8 @@ class SimSystem:
 
 
 def sim_sensors():
-    return [SimBarometer(), SimAccel(), SimAnalog(), SimGas(), SimSystem()]
+    sensors = [SimBarometer(), SimAccel(), SimAnalog()]
+    if SIM_ALL:
+        sensors.append(SimGas())
+    sensors.append(SimSystem())
+    return sensors

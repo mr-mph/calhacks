@@ -100,4 +100,4 @@ Name a marker "launch" (the Mark button) and the dashboard shows time aloft; the
 ## Tuning (`/etc/default/balloon`, then `sudo systemctl restart 'balloon-*'`)
 
 `BALLOON_SAMPLE_HZ` (5), `BALLOON_CAMERA_RES` (640x480), `BALLOON_CAMERA_FPS` (15),
-`BALLOON_ANALOG` (light:0,uv:2,aq:4), `BALLOON_STILL_INTERVAL` (2), `BALLOON_MIN_FREE_GB` (1), `BALLOON_SERVO` (0).
+`BALLOON_ANALOG` (aq:4; add light:0, uv:2 if present), `BALLOON_STILL_INTERVAL` (2), `BALLOON_MIN_FREE_GB` (1), `BALLOON_SERVO` (0).

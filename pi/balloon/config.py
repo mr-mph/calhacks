@@ -38,7 +38,7 @@ I2C_BUS = _env("BALLOON_I2C_BUS", 1, int)
 # Format: "name:channel,name:channel". Names understood: light, uv, aq (air quality).
 # Set to "" to disable all analog sensors.
 ANALOG = {}
-for part in _env("BALLOON_ANALOG", "light:0,uv:2,aq:4").split(","):
+for part in _env("BALLOON_ANALOG", "aq:4").split(","):
     if ":" in part:
         n, c = part.split(":", 1)
         try:
