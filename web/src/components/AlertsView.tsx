@@ -5,6 +5,7 @@ import { api } from "../../convex/_generated/api";
 import type { Alert } from "../lib/data";
 import { usePatrolCode, WRONG_PATROL_CODE } from "../lib/patrol";
 import { ago, clock, useNow } from "../lib/time";
+import { PlayAlertButton, ReadAloudSwitch } from "./AlertVoice";
 import { JiraStatus } from "./JiraStatus";
 import { Button, Caption, Card, Chip, EmptyState, type Tone } from "./ui";
 
@@ -122,6 +123,7 @@ function OpenAlert({ alert, now, code, onWrongCode }: OpenAlertProps) {
             <span className="font-semibold">Uncertainty: </span>
             {alert.uncertainty}
           </p>
+          <PlayAlertButton alert={alert} />
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -189,6 +191,7 @@ export function AlertsView() {
           a confirmed alert opens or updates an incident in the patrol's Jira.
         </p>
       </div>
+      <ReadAloudSwitch />
       {showCodeForm && <PatrolCodeForm wasWrong={wasWrong} onSave={handleSaveCode} />}
       {alerts.open.length === 0 ? (
         <EmptyState icon={<BellSimple size={28} aria-hidden="true" />} title="No alerts to review">

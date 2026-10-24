@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
+import { AlertVoiceProvider } from "./components/AlertVoice";
 import { AlertsView } from "./components/AlertsView";
 import { LiveView } from "./components/LiveView";
 import { BottomTabs, TopBar, type Tab } from "./components/Nav";
@@ -21,13 +22,15 @@ export default function App() {
   const openAlerts = alerts?.open.length ?? 0;
 
   return (
-    <div className="min-h-dvh">
-      <TopBar tab={tab} openAlerts={openAlerts} />
-      <main className="mx-auto max-w-7xl px-4 pt-4 pb-28 md:pb-12">
-        {tab === "live" && <LiveView openAlerts={openAlerts} />}
-        {tab === "alerts" && <AlertsView />}
-      </main>
-      <BottomTabs tab={tab} openAlerts={openAlerts} />
-    </div>
+    <AlertVoiceProvider open={alerts?.open}>
+      <div className="min-h-dvh">
+        <TopBar tab={tab} openAlerts={openAlerts} />
+        <main className="mx-auto max-w-7xl px-4 pt-4 pb-28 md:pb-12">
+          {tab === "live" && <LiveView openAlerts={openAlerts} />}
+          {tab === "alerts" && <AlertsView />}
+        </main>
+        <BottomTabs tab={tab} openAlerts={openAlerts} />
+      </div>
+    </AlertVoiceProvider>
   );
 }
