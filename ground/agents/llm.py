@@ -34,15 +34,15 @@ PRICES_PER_MTOK = {
 UNKNOWN_MODEL_PRICE = (10.00, 50.00)
 
 
-def load_api_key() -> str | None:
-    key = os.environ.get("ANTHROPIC_API_KEY")
+def load_api_key(name: str = "ANTHROPIC_API_KEY") -> str | None:
+    key = os.environ.get(name)
     if key:
         return key
     env_file = Path(os.environ.get("BALLOON_ENV_FILE", DEFAULT_ENV_FILE))
     if not env_file.is_file():
         return None
     from dotenv import dotenv_values
-    return dotenv_values(env_file).get("ANTHROPIC_API_KEY") or None
+    return dotenv_values(env_file).get(name) or None
 
 
 def cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:

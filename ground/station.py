@@ -141,8 +141,11 @@ class Agents:
         from agents.llm import Claude, spend_ledger
         from agents.markets import MarketAgent
         from agents.pricing import PricingAgent
+        from agents.voice import GrokVoice
 
         self.claude = Claude(spend_ledger(out_root, session))
+        self.voice = GrokVoice(self.claude.ledger)
+        self.audio_dir = Path(out_root) / session / "audio"
         claude = self.claude if self.claude.available else None
         self.pricing = PricingAgent(claude)
         self.markets = MarketAgent(claude, site)
@@ -166,7 +169,17 @@ class Agents:
             self.last_proposal_t = obs["t"]
             decisions += self.markets.propose(history, obs["t"])
         alert = self.alerts.check(obs, detections, image)
-        return decisions, [alert] if alert else []
+        return decisions, [self._voiced(alert)] if alert else []
+
+    def _voiced(self, alert: dict) -> dict:
+        """Read the alert aloud once with Grok and keep the MP3 beside the JSONL; the Convex sink uploads it."""
+        audio = self.voice.speak(alert)
+        if audio is None:
+            return alert
+        self.audio_dir.mkdir(parents=True, exist_ok=True)
+        path = self.audio_dir / f"alert-{alert['t']:.3f}.mp3"
+        path.write_bytes(audio)
+        return {**alert, "audio": {"file": str(path.resolve()), "voice": self.voice.label, "bytes": len(audio)}}
 
 
 class Station:
@@ -315,7 +328,8 @@ def main(argv: list[str]) -> None:
                     station.close()
                 agents = Agents(args.out, still.session, site, args.market_every * 60) if args.agents else None
                 if agents:
-                    log.info("agents: %s", agents.claude.mode)
+                    log.info("agents: %s; alert voice: %s", agents.claude.mode,
+                             agents.voice.label if agents.voice.available else "off (no XAI_API_KEY)")
                 station = Station(detector, site, aligner, args.out, still.session, agents, cloud, convex)
             station.process(still)
     except KeyboardInterrupt:
