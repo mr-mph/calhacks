@@ -54,8 +54,13 @@ async function insertAlert(ctx: MutationCtx, a: Infer<typeof alertInput>): Promi
         .first()
     : null;
   if (frame && !frame.pinned) await ctx.db.patch(frame._id, { pinned: true });
+  // Only an uploaded MP3 may be published as the alert's audio, never another stored file such as a frame.
+  const audio = a.audioId ? await ctx.db.system.get(a.audioId) : null;
+  const isAudio = audio?.contentType === "audio/mpeg";
   await ctx.db.insert("alerts", {
     ...a,
+    audioId: isAudio ? a.audioId : undefined,
+    voice: isAudio ? a.voice : undefined,
     severity: a.severity ?? "warning",
     status: "needs_review",
     frameId: frame?._id,
