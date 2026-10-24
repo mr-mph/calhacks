@@ -1,14 +1,17 @@
 #!/bin/bash
 # Second SD-card pass (Mac, card in reader). For the cloud-init style Raspberry Pi OS image:
 #  - make NetworkManager manage usb0 (it ignores USB gadgets by default) and create the usb-gadget connection
-#  - install this Mac's SSH public key for the Pi user (no password prompts)
+#  - (optional, --with-key) install this Mac's SSH public key for the Pi user
 #  - bump the cloud-init instance-id so the first-boot config runs again and applies the above
 # Idempotent.
 set -euo pipefail
 BOOT=""; for d in /Volumes/bootfs /Volumes/boot; do [ -f "$d/user-data" ] && BOOT="$d" && break; done
 [ -z "$BOOT" ] && { echo "boot partition with user-data not found; insert the SD card" >&2; exit 1; }
-PUB=""; for k in ~/.ssh/id_ed25519.pub ~/.ssh/id_rsa.pub; do [ -f "$k" ] && PUB="$(cat "$k")" && break; done
-[ -z "$PUB" ] && { echo "no SSH public key in ~/.ssh" >&2; exit 1; }
+PUB=""
+if [ "${1:-}" = "--with-key" ]; then
+  for k in ~/.ssh/id_ed25519.pub ~/.ssh/id_rsa.pub; do [ -f "$k" ] && PUB="$(cat "$k")" && break; done
+  [ -z "$PUB" ] && { echo "no SSH public key in ~/.ssh" >&2; exit 1; }
+fi
 UD="$BOOT/user-data"
 cp "$UD" "$BOOT/user-data.orig.$(date +%s)"
 PUB="$PUB" python3 - "$UD" <<'PY'
@@ -17,7 +20,7 @@ p = sys.argv[1]; s = open(p).read(); pub = os.environ["PUB"].strip()
 if "sd-usb-fix" in s:
     print("user-data: already patched"); sys.exit(0)
 # 1) ssh key under the user: block (after the name: line)
-if "ssh_authorized_keys" not in s:
+if pub and "ssh_authorized_keys" not in s:
     s = re.sub(r'(?m)^(  name: .*)$', r'\1\n  ssh_authorized_keys:\n    - "%s"' % pub, s, count=1)
 # 2) files: udev override so NetworkManager manages the gadget interface
 s += '''
@@ -50,7 +53,7 @@ if re.search(r'(?m)^runcmd:', s):
 else:
     s += "runcmd:\n" + cmds
 open(p, "w").write(s)
-print("user-data: patched (ssh key, usb0 managed + connection)")
+print("user-data: patched (usb0 managed + connection%s)" % (", ssh key" if pub else ""))
 PY
 # 4) new instance-id in meta-data and cmdline so cloud-init re-runs per-instance config
 NEWID="rpi-imager-usb-$(date +%s)"
