@@ -42,6 +42,8 @@ def load_config(path: Path = CONFIG_PATH) -> dict[str, str]:
     missing = [k for k in ("host", "database", "station_token") if not cfg.get(k)]
     if missing:
         raise ValueError(f"{path} is missing {', '.join(missing)}")
+    if not cfg["host"].startswith(("https://", "http://127.0.0.1", "http://localhost")):
+        raise ValueError(f"{path}: host must be https (tokens travel in headers)")
     return cfg
 
 
@@ -87,10 +89,15 @@ def ensure_agent_token(cfg: dict, path: Path, client: SpacetimeClient) -> str:
         log.warning("no oracle_secret in %s; the market agent shares the station identity", path)
         return cfg["station_token"]
     token = client.new_token()
-    SpacetimeClient(client.base, client.database, token, client.http).call("claim_oracle", cfg["oracle_secret"])
+    secret = cfg["oracle_secret"]
+    try:
+        SpacetimeClient(client.base, client.database, token, client.http).call("claim_oracle", secret)
+    except SpacetimeRejected as e:
+        raise SpacetimeRejected(str(e).replace(secret, "***")) from None
     cfg["agent_token"] = token
-    path.write_text(json.dumps(cfg, indent=2))
     os.chmod(path, 0o600)
+    with os.fdopen(os.open(path, os.O_WRONLY | os.O_TRUNC | os.O_CREAT, 0o600), "w") as f:
+        f.write(json.dumps(cfg, indent=2))
     log.info("market agent claimed its own oracle identity")
     return token
 
