@@ -141,6 +141,7 @@ Devpost judging criteria (Cal Hacks prizes): **Application** (who it helps, woul
 | Azure for Students | Linked in `#spons-microsoft` |
 | Cursor + Grok 1 month premium | QR code from the SpaceXAI workshop (`#spons-spacexai`) |
 | Mana Pro (3 months) | Every team that uses Mana |
+| Spacetime maincloud credits | Redeem link with a Cal Hacks code, posted Saturday 12:10 AM in `#cohost-spacetime` |
 
 ## Hardware at the venue
 
