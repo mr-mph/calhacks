@@ -19,6 +19,7 @@ function idsOf(alerts: Alert[]): Set<string> {
 export function AlertVoiceProvider({ open, children }: ProviderProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const seenRef = useRef<Set<string> | null>(null);
+  const requestRef = useRef(0);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [readAloud, setReadAloudState] = useState(readStoredReadAloud);
   const [isBlocked, setBlocked] = useState(false);
@@ -36,12 +37,16 @@ export function AlertVoiceProvider({ open, children }: ProviderProps) {
   const play = useCallback(
     (id: string, url: string) => {
       const el = element();
+      const request = ++requestRef.current;
       el.src = url;
+      el.currentTime = 0;
       setPlayingId(id);
       el.play()
         .then(() => setBlocked(false))
         .catch((e: unknown) => {
-          setPlayingId((current) => (current === id ? null : current));
+          // A newer play() or stop() replaced this one; its AbortError says nothing about the current state.
+          if (request !== requestRef.current) return;
+          setPlayingId(null);
           if (e instanceof DOMException && e.name === "NotAllowedError") setBlocked(true);
         });
     },
@@ -49,7 +54,12 @@ export function AlertVoiceProvider({ open, children }: ProviderProps) {
   );
 
   const stop = useCallback(() => {
-    audioRef.current?.pause();
+    requestRef.current += 1;
+    const el = audioRef.current;
+    if (el) {
+      el.pause();
+      el.currentTime = 0;
+    }
     setPlayingId(null);
   }, []);
 
@@ -59,6 +69,7 @@ export function AlertVoiceProvider({ open, children }: ProviderProps) {
     setBlocked(false);
     seenRef.current = on ? idsOf(open ?? []) : null;
     if (on && playingId === null) {
+      requestRef.current += 1;
       const el = element();
       el.src = SILENT_WAV;
       el.play().catch(() => undefined);
@@ -106,13 +117,11 @@ export function ReadAloudSwitch() {
         <SpeakerHigh size={16} aria-hidden="true" />
         Read new alerts aloud
       </button>
-      {isBlocked ? (
-        <p role="status" className="text-sm text-warning">
-          This browser blocked sound. Turn the switch off and on again to allow it.
-        </p>
-      ) : (
-        <Caption>Voice by Grok. Plays on this phone only, for alerts that arrive while this page is open.</Caption>
-      )}
+      <p role="status" className={isBlocked ? "text-sm text-warning" : "font-mono text-xs text-muted"}>
+        {isBlocked
+          ? "This browser blocked sound. Turn the switch off and on again to allow it."
+          : "Voice by Grok. Plays on this phone only, for alerts that arrive while this page is open."}
+      </p>
     </div>
   );
 }
@@ -124,7 +133,7 @@ export function PlayAlertButton({ alert }: { alert: Alert }) {
   const url = alert.audioUrl;
   return (
     <div className="flex items-center gap-3">
-      <Button onClick={() => (isPlaying ? stop() : play(alert._id, url))} aria-pressed={isPlaying}>
+      <Button onClick={() => (isPlaying ? stop() : play(alert._id, url))}>
         {isPlaying ? <Stop size={16} weight="bold" aria-hidden="true" /> : <Play size={16} weight="bold" aria-hidden="true" />}
         {isPlaying ? "Stop" : "Play alert"}
       </Button>
