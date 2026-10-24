@@ -375,7 +375,7 @@ button.outcome:active .pill { scale: 0.96; }
 }
 .toast[data-kind='error'] { background: var(--no); color: #fff; }
 
-@media (min-width: 900px) {
+@media (min-width: 768px) {
   .tabbar { display: none; }
   .topnav { display: flex; gap: var(--sp-8); }
   .topnav .nav-item { flex-direction: row; gap: var(--sp-8); padding: 0 var(--sp-16); font-size: var(--fs-14); border-radius: var(--r-pill); }

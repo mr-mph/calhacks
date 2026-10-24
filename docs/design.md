@@ -67,8 +67,8 @@ Buying opens a bottom sheet: Yes/No toggle, amount, cost and payout computed liv
 **Alerts.** Each alert: severity chip, the Claude-written text, its uncertainty line, the frame thumbnail, and two
 buttons, Confirm (accent) and Dismiss. Confirmed alerts go to the patrol's Jira.
 
-**Navigation.** Phone: bottom tab bar (Live, Markets, Alerts). Desktop: the same three as a top bar with "Overhead." in
-Charter on the left.
+**Navigation.** Under 768 px: bottom tab bar (Live, Markets, Alerts). From 768 px up: the same three as a top bar with
+"Overhead." in Charter on the left. Every app switches at the same 768 px breakpoint (Tailwind `md`).
 
 **Landing (if time).** "Overhead." huge in bold Charter over a dimmed live frame, one sentence ("A camera that stays
 over one place for hours, so a beach, a parking lot and a market can see what's happening now."), and two pills:
