@@ -37,6 +37,7 @@ export const createMarket = spacetimedb.reducer(
     threshold: t.f64(),
     closeAtUnix: t.f64(),
     b: t.u32(),
+    rationale: t.string(),
   },
   (ctx, args) => {
     requireOracle(ctx);
@@ -66,6 +67,7 @@ export const createMarket = spacetimedb.reducer(
       createdBy: ctx.sender,
       createdAt: ctx.timestamp,
       resolvedAt: undefined,
+      rationale: requireText(args.rationale, 'rationale', 300),
     });
     ctx.db.closeTimer.insert({
       scheduledId: 0n,

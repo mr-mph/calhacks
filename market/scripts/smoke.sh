@@ -7,6 +7,7 @@ HOST="${SPACETIME_HOST:-http://127.0.0.1:3000}"
 DB="${SMOKE_DB:-balloon-market-smoke}"
 SECRET="smoke-secret-$(date +%s)-abcdefghijklmnop"
 MICRO=1000000
+CLOSE_IN="${SMOKE_CLOSE_SECONDS:-6}"
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=lib.sh
 source "$HERE/scripts/lib.sh"
@@ -46,13 +47,13 @@ pass "starting balance 1000 credits"
 echo "markets"
 NOW=$(date +%s)
 expect_err 'only an oracle' "$ALICE" create_market \
-  "[\"sneaky\",\"lot-a\",\"car_count\",\">=\",40,$((NOW + 60)),100]"
+  "[\"sneaky\",\"lot-a\",\"car_count\",\">=\",40,$((NOW + 60)),100,\"x\"]"
 expect_err 'within 7 days' "$ORACLE" create_market \
-  "[\"far\",\"lot-a\",\"car_count\",\">=\",40,1e300,100]"
+  "[\"far\",\"lot-a\",\"car_count\",\">=\",40,1e300,100,\"x\"]"
 expect_ok "$ORACLE" create_market \
-  "[\"40+ cars in lot A at close?\",\"lot-a\",\"car_count\",\">=\",40,$((NOW + 6)),100]"
+  "[\"40+ cars in lot A at close?\",\"lot-a\",\"car_count\",\">=\",40,$((NOW + CLOSE_IN)),100,\"Lot A averaged 38 cars at this hour over the last week.\"]"
 expect_ok "$ORACLE" create_market \
-  "[\"150+ crossings per hour at crosswalk 1?\",\"crosswalk-1\",\"crossings_per_hour\",\">=\",150,$((NOW + 600)),100]"
+  "[\"150+ crossings per hour at crosswalk 1?\",\"crosswalk-1\",\"crossings_per_hour\",\">=\",150,$((NOW + 600)),100,\"Crossings run near 140 per hour on weekday afternoons.\"]"
 SETTLE_ID=$(scalar "SELECT id FROM market WHERE zone = 'lot-a'")
 VOID_ID=$(scalar "SELECT id FROM market WHERE zone = 'crosswalk-1'")
 pass "created market $SETTLE_ID (to settle) and $VOID_ID (to void)"
@@ -80,7 +81,7 @@ pass "$(scalar 'SELECT COUNT(*) AS n FROM observation') observations stored"
 
 echo "settlement"
 expect_err 'not closed yet' "$ORACLE" settle "[$SETTLE_ID,42,\"too early\"]"
-sleep $((NOW + 7 - $(date +%s)))
+sleep $((NOW + CLOSE_IN + 1 - $(date +%s)))
 [[ $(scalar "SELECT status FROM market WHERE id = $SETTLE_ID") == closed ]] || fail "scheduled close"
 pass "scheduled reducer closed market $SETTLE_ID at close_at"
 expect_err 'market is closed' "$ALICE" buy "[$SETTLE_ID,\"yes\",1]"

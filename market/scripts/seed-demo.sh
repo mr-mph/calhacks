@@ -16,9 +16,9 @@ must "$MAYA" register '["maya"]'
 must "$DEV" register '["dev"]'
 
 NOW=$(date +%s)
-must "$ORACLE" create_market "[\"40 or more cars in lot A at close?\",\"lot-a\",\"car_count\",\">=\",40,$((NOW + 1800)),100]"
-must "$ORACLE" create_market "[\"More than 150 people cross crosswalk 1 per hour?\",\"crosswalk-1\",\"crossings_per_hour\",\">\",150,$((NOW + 3600)),100]"
-must "$ORACLE" create_market "[\"Lot B under 20 cars at close?\",\"lot-b\",\"car_count\",\"<\",20,$((NOW + 6)),50]"
+must "$ORACLE" create_market "[\"40 or more cars in lot A at close?\",\"lot-a\",\"car_count\",\">=\",40,$((NOW + 1800)),100,\"Lot A has held 35 to 42 cars all afternoon, so 40 is close to a coin flip.\"]"
+must "$ORACLE" create_market "[\"More than 150 people cross crosswalk 1 per hour?\",\"crosswalk-1\",\"crossings_per_hour\",\">\",150,$((NOW + 3600)),100,\"Crossings have run 120 to 140 per hour since noon; a ferry arrival could push it over.\"]"
+must "$ORACLE" create_market "[\"Lot B under 20 cars at close?\",\"lot-b\",\"car_count\",\"<\",20,$((NOW + 6)),50,\"Lot B usually empties after 2 PM.\"]"
 
 LOT_A=$(scalar "SELECT id FROM market WHERE zone = 'lot-a'")
 CROSS=$(scalar "SELECT id FROM market WHERE zone = 'crosswalk-1'")
