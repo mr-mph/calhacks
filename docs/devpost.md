@@ -19,7 +19,8 @@ to 200 rescues a year.
 A small helium balloon on a tether doesn't have those limits. The helium does the lifting, so a power bank only has to
 run the camera and computer, and the balloon can stay up for hours, silently, at a fixed spot.
 
-[One line from the beachgoer, surfer or lifeguard we talked to, with their first name or role.]
+We talked to several beachgoers and swimmers. They told us lifeguards are often far outnumbered by the people in
+the water, and that a constant watch from above would make them feel safer.
 
 ## What it does
 
@@ -97,7 +98,8 @@ tailwind, atlassian-forge, jira, confluence, vercel
 
 - **Anthropic, Claude for Public Benefit:** community = swimmers and surf patrol at Ocean Beach, SF. Problem: deadly rip
   currents, no lifeguard towers, drones banned. Claude writes the alert, states its uncertainty, never identifies
-  anyone, and a human confirms before anything is sent. [The person we talked to.]
+  anyone, and a human confirms before anything is sent. We talked to several beachgoers and swimmers: lifeguards are often far
+  outnumbered by swimmers, and they said a watch from above would make the beach feel safer.
 - **Hyphenate, Autonomous Systems for Finance:** two agents (surge pricing, market maker) that do real work on live
   data, act only inside hard limits, log every decision, and stop or void when the data isn't good enough. Roles: lot
   revenue manager, market operator. Real: the counts, the prices, the settlements. Simulated: play-money credits.

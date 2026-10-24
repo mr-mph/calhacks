@@ -134,7 +134,7 @@ and there's no limit on how many. Full criteria and links: `docs/pitch.md`.
 | Track | Status | What we build for it |
 |---|---|---|
 | Cal Hacks: Overall, Best Hardware, People-First, Planet-First, Most Technically Complex, Most Creative | Automatic | The balloon working live |
-| **Anthropic: Claude for Public Benefit** ($5k credits + 1 yr Max 20x) | In | Claude reads frames plus detections and writes the Ocean Beach rip-current alert. Judges want a named community and one conversation with a real person: talk to a surfer, lifeguard or beachgoer before judging |
+| **Anthropic: Claude for Public Benefit** ($5k credits + 1 yr Max 20x) | In | Claude reads frames plus detections and writes the Ocean Beach rip-current alert. Community conversation done (Sat Oct 24): Tarun talked to several beachgoers and swimmers; lifeguards are often far outnumbered by swimmers, and they said a watch from above would make the beach feel safer |
 | **Hyphenate: Autonomous Systems for Finance** ($8k / $5k / $3k) | In | Two agents on the balloon's counts: a **surge-pricing** agent that sets parking prices from live occupancy, and a **market** agent that runs prediction markets on counts ("cars in the lot by 5 PM", "people crossing per hour"). Each logs its decisions and says when it isn't sure |
 | **Convex** ($5k, one winner) | In if time | The live backend for the parking map and beach alerts on phones |
 | **Spacetime** ($2,048 / $1,024 / $512) | In | The live prediction market (bets, prices, settlement), which is one of Spacetime's own example uses. Spacetime runs the market; Convex runs the map. Each must be central to its feature |
