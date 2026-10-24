@@ -1,10 +1,11 @@
 import bell from '@phosphor-icons/core/regular/bell.svg?raw';
 import broadcast from '@phosphor-icons/core/regular/broadcast.svg?raw';
 import chartLineUp from '@phosphor-icons/core/regular/chart-line-up.svg?raw';
+import check from '@phosphor-icons/core/bold/check-bold.svg?raw';
 import warning from '@phosphor-icons/core/regular/warning.svg?raw';
 import x from '@phosphor-icons/core/regular/x.svg?raw';
 
-const SOURCES = { bell, broadcast, chartLineUp, warning, x };
+const SOURCES = { bell, broadcast, chartLineUp, check, warning, x };
 
 export type IconName = keyof typeof SOURCES;
 
