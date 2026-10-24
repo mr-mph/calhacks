@@ -8,6 +8,7 @@ import os, sys, types, time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 os.environ["BALLOON_DATA"] = os.environ.get("BALLOON_DATA", "/tmp/balloon-fake-test")
 os.environ["BALLOON_SIM"] = "0"
+os.environ["BALLOON_ANALOG"] = "light:0,uv:2,aq:4"   # exercise every analog path even though we only fly the AQ sensor
 
 
 def le16(v):
