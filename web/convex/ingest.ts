@@ -18,7 +18,7 @@ const frameInput = v.object(frameFields);
 
 function checkSecret(given: string): void {
   const expected = process.env.INGEST_SECRET;
-  if (!expected) throw new ConvexError("INGEST_SECRET is not set on this deployment");
+  if (!expected) throw new ConvexError("Wrong ingest secret");
   let diff = given.length ^ expected.length;
   for (let i = 0; i < expected.length; i++) {
     diff |= expected.charCodeAt(i) ^ given.charCodeAt(i % Math.max(given.length, 1));

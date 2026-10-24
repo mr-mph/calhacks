@@ -31,6 +31,7 @@ function OpenAlert({ alert, now }: { alert: Alert; now: number }) {
       await review({ id: alert._id, decision });
     } catch (e) {
       setError(errorText(e));
+    } finally {
       setBusy(null);
     }
   }

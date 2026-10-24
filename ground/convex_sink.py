@@ -172,6 +172,10 @@ class ConvexSink:
         self._thread.join(timeout_s)
         self._calls.shutdown(wait=False, cancel_futures=True)
 
+    def _redact(self, error: Exception) -> str:
+        # Convex validation errors echo the call's args, which include the secret.
+        return str(error).replace(self._secret, "***")
+
     def _call(self, name: str, args: dict) -> Any:
         future = self._calls.submit(self._client.mutation, name, {"secret": self._secret, **args})
         try:
@@ -189,7 +193,7 @@ class ConvexSink:
             except Exception as e:  # network, Convex validation, disk: log, back off, keep the queue
                 self._failures += 1
                 delay = min(BACKOFF_MAX_S, 2.0 ** self._failures)
-                log.warning("convex send failed (%s); retrying in %.0f s", e, delay)
+                log.warning("convex send failed (%s); retrying in %.0f s", self._redact(e), delay)
                 self._stop.wait(delay)
 
     def _send_pending(self) -> None:
@@ -204,7 +208,7 @@ class ConvexSink:
                     with self._lock:
                         self._site = self._site or site
                     raise
-                log.error("convex rejected the site map, dropping it: %s", e)
+                log.error("convex rejected the site map, dropping it: %s", self._redact(e))
 
         self._upload_newest_frame()
         self._send_batch()
@@ -263,7 +267,7 @@ class ConvexSink:
             self._call("ingest:batch", args)
         except Exception as e:
             if is_rejected(e):
-                log.error("convex rejected a batch, dropping it: %s", e)
+                log.error("convex rejected a batch, dropping it: %s", self._redact(e))
                 with self._lock:
                     if self._uploaded is frame:
                         self._uploaded = None

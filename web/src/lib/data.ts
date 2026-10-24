@@ -39,9 +39,10 @@ export function lotState(lot: Lot, obs: Observation | null): LotState {
   if (spaces && known.length > 0) {
     return { free: known.filter((id) => !spaces[id]).length, total: known.length };
   }
-  const occupancy = obs?.zones?.[lot.id]?.occupancy;
+  const occupancy = obs?.aligned ? obs.zones?.[lot.id]?.occupancy : undefined;
   if (occupancy !== undefined && lot.capacity) {
-    return { free: Math.round(lot.capacity * (1 - occupancy)), total: lot.capacity };
+    const free = Math.round(lot.capacity * (1 - Math.min(1, Math.max(0, occupancy))));
+    return { free, total: lot.capacity };
   }
   return { free: null, total: lot.capacity };
 }

@@ -16,10 +16,10 @@ function useDecodedFrame(frame: Frame): Frame | null {
     let isCurrent = true;
     const img = new Image();
     img.src = frame.url;
-    img
-      .decode()
-      .catch(() => undefined)
-      .then(() => isCurrent && setShown(frame));
+    img.decode().then(
+      () => isCurrent && setShown(frame),
+      () => undefined,
+    );
     return () => {
       isCurrent = false;
     };

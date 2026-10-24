@@ -25,6 +25,7 @@ export function LiveView({ openAlerts }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
+      <h1 className="sr-only">Live view</h1>
       {openAlerts > 0 && (
         <a href="#/alerts" className="press flex min-h-11 items-center gap-2 self-start rounded-full bg-critical/15 px-4 text-sm font-semibold text-critical">
           <BellRinging size={16} weight="bold" aria-hidden="true" />

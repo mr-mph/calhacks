@@ -17,8 +17,9 @@ type Props = {
 function Badge({ n }: { n: number }) {
   if (n === 0) return null;
   return (
-    <span className="nums rounded-full bg-critical px-1.5 text-[11px] leading-[18px] font-bold text-white" aria-label={`${n} need review`}>
+    <span className="nums rounded-full bg-critical px-1.5 text-[11px] leading-[18px] font-bold text-white">
       {n}
+      <span className="sr-only"> need review</span>
     </span>
   );
 }
