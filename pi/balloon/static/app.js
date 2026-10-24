@@ -1,6 +1,14 @@
 /* Balloon dashboard: SSE-fed live charts (uPlot), camera stream, markers, controls. */
 (function () {
   "use strict";
+  // Surface JS errors on the page itself (phones have no console).
+  function showError(msg) {
+    let box = document.getElementById("js-errors");
+    if (!box) { box = document.createElement("pre"); box.id = "js-errors"; box.className = "js-errors"; document.body.prepend(box); }
+    box.textContent += msg + "\n";
+  }
+  addEventListener("error", (e) => showError((e.message || e) + " @ " + (e.filename || "").split("/").pop() + ":" + e.lineno));
+  addEventListener("unhandledrejection", (e) => showError("promise: " + (e.reason && e.reason.message || e.reason)));
 
   // ---------- chart definitions (one axis per chart; series colors fixed by slot) ----------
   const CHARTS = [
