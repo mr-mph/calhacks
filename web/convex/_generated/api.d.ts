@@ -11,6 +11,7 @@
 import type * as alerts from "../alerts.js";
 import type * as ingest from "../ingest.js";
 import type * as live from "../live.js";
+import type * as secrets from "../secrets.js";
 import type * as validators from "../validators.js";
 
 import type {
@@ -23,6 +24,7 @@ declare const fullApi: ApiFromModules<{
   alerts: typeof alerts;
   ingest: typeof ingest;
   live: typeof live;
+  secrets: typeof secrets;
   validators: typeof validators;
 }>;
 
