@@ -1,0 +1,15 @@
+{
+  "name": "balloon-market-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "spacetime build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "spacetimedb": "2.13.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.2"
+  }
+}

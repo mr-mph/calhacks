@@ -1,0 +1,23 @@
+{
+  "name": "balloon-market-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "dev:cloud": "vite --host --mode production",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "generate": "spacetime generate --lang typescript --out-dir src/module_bindings --module-path ../server"
+  },
+  "dependencies": {
+    "@fontsource/charis-sil": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/manrope": "^5.3.0",
+    "@phosphor-icons/core": "^2.1.1",
+    "spacetimedb": "2.13.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.2",
+    "vite": "^6.0.0"
+  }
+}
