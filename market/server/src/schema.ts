@@ -90,6 +90,21 @@ export const observation = table(
   }
 );
 
+// One row per zone/metric so phones can subscribe to the live count without the whole history.
+export const latestObservation = table(
+  { name: 'latest_observation', public: true },
+  {
+    key: t.string().primaryKey(),
+    observationId: t.u64(),
+    t: t.f64(),
+    zone: t.string(),
+    metric: t.string(),
+    value: t.f64(),
+    confidence: t.f64(),
+    frame: t.string(),
+  }
+);
+
 export const closeTimer = table(
   { name: 'close_timer' },
   {
@@ -100,7 +115,7 @@ export const closeTimer = table(
 );
 
 const spacetimedb = schema(
-  { account, oracle, market, position, trade, observation, closeTimer },
+  { account, oracle, market, position, trade, observation, latestObservation, closeTimer },
   { env: { ORACLE_SECRET: t.string() } }
 );
 

@@ -19,7 +19,7 @@ export const postObservation = spacetimedb.reducer(
     requireOracle(ctx);
     const confidence = requireFinite(args.confidence, 'confidence');
     if (confidence < 0 || confidence > 1) throw new SenderError('confidence must be 0 to 1');
-    ctx.db.observation.insert({
+    const row = ctx.db.observation.insert({
       id: 0n,
       t: requireFinite(args.t, 't'),
       zone: requireText(args.zone, 'zone', 64),
@@ -30,6 +30,19 @@ export const postObservation = spacetimedb.reducer(
       postedBy: ctx.sender,
       receivedAt: ctx.timestamp,
     });
+    const latest = {
+      key: `${row.zone}/${row.metric}`,
+      observationId: row.id,
+      t: row.t,
+      zone: row.zone,
+      metric: row.metric,
+      value: row.value,
+      confidence: row.confidence,
+      frame: row.frame,
+    };
+    const previous = ctx.db.latestObservation.key.find(latest.key);
+    if (!previous) ctx.db.latestObservation.insert(latest);
+    else if (previous.t <= latest.t) ctx.db.latestObservation.key.update(latest);
   }
 );
 
