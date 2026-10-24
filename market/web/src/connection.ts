@@ -1,10 +1,8 @@
+import { SPACETIME_DATABASE, SPACETIME_URI } from './config';
 import { DbConnection } from './module_bindings';
 
-const TOKEN_KEY = 'balloon-market-token';
-
-// Phones load the page from the laptop's LAN address, so the database defaults to that same host.
-const URI = import.meta.env.VITE_SPACETIME_URI ?? `ws://${location.hostname}:3000`;
-const DATABASE = import.meta.env.VITE_SPACETIME_DB ?? 'balloon-market';
+// Each server issues its own tokens, so keep one per database.
+const TOKEN_KEY = `overhead-token-${SPACETIME_DATABASE}`;
 
 const TABLES = ['market', 'account', 'position', 'trade', 'latest_observation'];
 
@@ -31,8 +29,8 @@ export interface ConnectionHooks {
 
 export function connect(hooks: ConnectionHooks): DbConnection {
   return DbConnection.builder()
-    .withUri(URI)
-    .withDatabaseName(DATABASE)
+    .withUri(SPACETIME_URI)
+    .withDatabaseName(SPACETIME_DATABASE)
     .withToken(readToken())
     .withAutomaticReconnect()
     .onConnect((conn, _identity, token) => {
@@ -40,6 +38,7 @@ export function connect(hooks: ConnectionHooks): DbConnection {
       conn
         .subscriptionBuilder()
         .onApplied(() => hooks.onReady())
+        .onError(() => hooks.onLinkChange('down'))
         .subscribe(TABLES.map(t => `SELECT * FROM ${t}`));
       hooks.onLinkChange('live');
     })

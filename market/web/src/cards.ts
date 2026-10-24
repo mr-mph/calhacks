@@ -1,156 +1,146 @@
-import { buyCost, MICRO_PER_CREDIT, priceYes, toMicroCeil, type Book, type Side } from '../../server/src/lmsr';
+import { MICRO_PER_CREDIT, priceYes, type Book, type Side } from '../../server/src/lmsr';
 import { h } from './dom';
-import { agoText, closesText, credits, metricUnit, percent, thresholdPhrase } from './format';
-import type { LatestObservation, Market, Position, Trade } from './module_bindings/types';
-import { marketKey, readingKey, type View } from './view';
+import { agoText, closesText, credits, eyebrowText, metricUnit, paysText, percent, thresholdPhrase, wholeCredits } from './format';
+import { icon } from './icons';
+import type { LatestObservation, Market, Position } from './module_bindings/types';
+import { isTradable, marketKey, readingKey, type View } from './view';
 
-export const SHARE_CHOICES = [1, 10, 50, 100];
 const SETTLEMENT_MIN_CONFIDENCE = 0.5;
+const SIDES: Side[] = ['yes', 'no'];
 
-export interface Actions {
-  pickShares: (marketId: bigint, shares: number) => void;
-  buy: (marketId: bigint, side: Side, shares: number) => void;
-}
+export type OpenSheet = (marketId: bigint, side: Side) => void;
 
-export interface UiState {
-  shares: Map<string, number>;
-  busy: boolean;
-}
-
-function bookOf(m: Market): Book {
+export function bookOf(m: Market): Book {
   return { qYes: Number(m.qYes), qNo: Number(m.qNo), b: m.b };
 }
 
-function oddsMeter(p: number) {
+function cardHead(m: Market, rightCaption: Node | string) {
   return h(
     'div',
-    { class: 'odds' },
-    h('div', { class: 'odds-labels' }, h('span', { class: 'yes' }, `YES ${percent(p)}`), h('span', { class: 'no' }, `NO ${percent(1 - p)}`)),
-    h(
-      'div',
-      { class: 'meter', attrs: { role: 'img', 'aria-label': `Market says ${percent(p)} chance of YES` } },
-      h('div', { class: 'meter-fill', attrs: { style: `width:${(p * 100).toFixed(1)}%` } })
-    )
+    { class: 'card-head' },
+    h('div', { class: 'eyebrow' }, h('span', { class: 'cat' }, eyebrowText(m.metric, m.zone)), rightCaption),
+    h('h3', {}, m.question)
   );
 }
 
 function readingLine(m: Market, latest: LatestObservation | undefined, now: Date) {
-  if (!latest) return h('p', { class: 'reading muted' }, 'No count from the balloon yet.');
-  const low = latest.confidence < SETTLEMENT_MIN_CONFIDENCE;
+  if (!latest) return h('p', { class: 'reading muted' }, 'Waiting for the first count from the balloon.');
   return h(
     'p',
     { class: 'reading' },
-    'Balloon sees ',
-    h('strong', {}, String(Math.round(latest.value))),
-    ` ${metricUnit(m.metric)}, ${agoText(latest.t, now)}. `,
-    low
-      ? h('span', { class: 'low' }, `Low confidence (${percent(latest.confidence)}), not used to settle.`)
-      : h('span', { class: 'muted' }, `Confidence ${percent(latest.confidence)}.`)
+    h('span', { class: 'muted' }, 'Balloon sees'),
+    h('strong', {}, `${Math.round(latest.value)} ${metricUnit(m.metric)}`),
+    h('span', { class: 'caption' }, `Updated ${agoText(latest.t, now)}`),
+    latest.confidence < SETTLEMENT_MIN_CONFIDENCE &&
+      h('span', { class: 'chip-warning' }, icon('warning'), `Unreliable frame (${percent(latest.confidence)}), not used to settle`)
   );
 }
 
-function holdingLine(p: Position | undefined) {
-  if (!p) return null;
-  return h('p', { class: 'holding num' }, `You hold ${p.yes} YES and ${p.no} NO, paid ${credits(p.spentMicro)}`);
+function sideLabel(side: Side): string {
+  return side === 'yes' ? 'Yes' : 'No';
 }
 
-function tape(trades: Trade[] | undefined, names: Map<string, string>) {
-  if (!trades?.length) return null;
+function outcomeRow(side: Side, p: number, pillText: string, opts: { onPick?: () => void; pillClass?: string; pays?: string; key?: string }) {
+  const children = [
+    h('span', { class: 'outcome-label' }, sideLabel(side)),
+    h('span', { class: 'outcome-pays' }, opts.pays ?? ''),
+    h('span', { class: `pill ${opts.pillClass ?? ''}` }, pillText),
+    h('span', { class: 'line', attrs: { 'aria-hidden': 'true' } }, h('span', { class: 'line-fill', attrs: { style: `display:block;width:${(p * 100).toFixed(1)}%` } })),
+  ];
+  if (!opts.onPick) return h('div', { class: `outcome ${side}` }, ...children);
   return h(
-    'ul',
-    { class: 'tape' },
-    ...trades.map(t =>
-      h('li', {}, `${names.get(t.trader.toHexString()) ?? 'someone'} bought ${t.shares} ${t.side.toUpperCase()} for ${credits(t.costMicro)}, YES now ${percent(t.priceYesAfter)}`)
-    )
-  );
-}
-
-function shareChips(m: Market, chosen: number, actions: Actions) {
-  return h(
-    'div',
-    { class: 'chips', attrs: { role: 'group', 'aria-label': 'Shares to buy' } },
-    h('span', { class: 'small muted' }, 'Shares'),
-    ...SHARE_CHOICES.map(n =>
-      h('button', {
-        class: 'chip',
-        attrs: { type: 'button', 'aria-pressed': String(n === chosen), 'data-key': `chip-${m.id}-${n}` },
-        onClick: () => actions.pickShares(m.id, n),
-      }, String(n))
-    )
-  );
-}
-
-function buyButton(m: Market, side: Side, shares: number, balanceMicro: bigint, ui: UiState, actions: Actions) {
-  const costMicro = toMicroCeil(buyCost(bookOf(m), side, shares));
-  const label = side === 'yes' ? 'Buy YES' : 'Buy NO';
-  const btn = h(
     'button',
     {
-      class: `btn btn-${side}`,
-      attrs: { type: 'button', 'data-key': `buy-${m.id}-${side}` },
-      onClick: () => actions.buy(m.id, side, shares),
+      class: `outcome ${side}`,
+      attrs: { type: 'button', 'data-key': `pick-${opts.key}-${side}`, 'aria-label': `Buy ${sideLabel(side)}, ${percent(p)} chance, ${opts.pays}` },
+      onClick: opts.onPick,
     },
-    label,
-    h('small', {}, `${shares} for ${credits(costMicro)}`)
-  );
-  btn.disabled = ui.busy || costMicro > balanceMicro;
-  return btn;
-}
-
-function tradeControls(m: Market, view: View, ui: UiState, actions: Actions) {
-  if (!view.account) return h('p', { class: 'small muted' }, 'Join above to trade.');
-  if (m.closeAt.toDate() <= view.now || m.status !== 'open') {
-    return h('p', { class: 'small muted' }, "Trading closed. Waiting for the balloon's count to settle.");
-  }
-  const shares = ui.shares.get(marketKey(m.id)) ?? SHARE_CHOICES[1];
-  const balance = view.account.balanceMicro;
-  return h(
-    'div',
-    { class: 'stack' },
-    shareChips(m, shares, actions),
-    h('div', { class: 'trade-row' }, buyButton(m, 'yes', shares, balance, ui, actions), buyButton(m, 'no', shares, balance, ui, actions))
+    ...children
   );
 }
 
-export function openCard(m: Market, view: View, ui: UiState, actions: Actions): HTMLElement {
+function positionText(p: Position | undefined): string | null {
+  if (!p) return null;
+  const held = [p.yes > 0n && `${p.yes} Yes`, p.no > 0n && `${p.no} No`].filter(Boolean).join(' and ');
+  return `You hold ${held} (paid ${credits(p.spentMicro)})`;
+}
+
+function why(label: string, text: string) {
+  return text ? h('p', { class: 'why' }, h('b', {}, `${label} `), text) : null;
+}
+
+function meta(volumeMicro: bigint, mine: string | null) {
   return h(
+    'p',
+    { class: 'meta' },
+    h('span', { class: 'num' }, `${wholeCredits(volumeMicro)} credits traded`),
+    mine && h('span', { class: 'mine' }, mine)
+  );
+}
+
+export function openCard(m: Market, view: View, openSheet: OpenSheet): HTMLElement {
+  const p = priceYes(bookOf(m));
+  const canTrade = view.account !== undefined && isTradable(m, view.now);
+  const key = marketKey(m.id);
+  const rows = SIDES.map(side => {
+    const ps = side === 'yes' ? p : 1 - p;
+    return outcomeRow(side, ps, percent(ps), { pays: paysText(ps), key, onPick: canTrade ? () => openSheet(m.id, side) : undefined });
+  });
+  const closedNote = !isTradable(m, view.now) && h('p', { class: 'muted' }, "Trading closed. Waiting for the balloon's count to settle.");
+  const joinNote = !view.account && isTradable(m, view.now) && h('p', { class: 'muted' }, 'Pick a name above to trade.');
+  const card = h(
     'article',
     { class: 'card' },
-    h('div', { class: 'eyebrow' }, h('span', {}, m.zone), h('span', {}, closesText(m.closeAt, view.now))),
-    h('h3', {}, m.question),
-    h('p', { class: 'small muted' }, `YES if the balloon counts ${thresholdPhrase(m.comparator, m.threshold, m.metric)} at close.`),
+    cardHead(m, h('span', { class: 'caption' }, closesText(m.closeAt, view.now))),
     readingLine(m, view.latest.get(readingKey(m)), view.now),
-    oddsMeter(priceYes(bookOf(m))),
-    tradeControls(m, view, ui, actions),
-    holdingLine(view.positions.get(marketKey(m.id))),
-    tape(view.trades.get(marketKey(m.id)), view.names)
+    h('div', { class: 'outcomes' }, ...rows),
+    h(
+      'div',
+      { class: 'card-foot' },
+      closedNote,
+      joinNote,
+      meta(view.volumeMicro.get(key) ?? 0n, positionText(view.positions.get(key))),
+      why('Why', m.rationale)
+    )
   );
+  card.dataset.market = key;
+  return card;
 }
 
-function resultLine(m: Market, p: Position | undefined) {
+function resultText(m: Market, p: Position | undefined): string | null {
   if (!p) return null;
-  const amount = m.status === 'void' ? p.spentMicro : (m.outcome === 'yes' ? p.yes : p.no) * MICRO_PER_CREDIT;
-  const verb = m.status === 'void' ? 'Refunded' : 'You were paid';
-  return h('p', { class: 'holding num' }, `${verb} ${credits(amount)} (you paid ${credits(p.spentMicro)})`);
+  if (m.status === 'void') return `Refunded ${credits(p.spentMicro)}`;
+  const paid = (m.outcome === 'yes' ? p.yes : p.no) * MICRO_PER_CREDIT;
+  return `You were paid ${credits(paid)} (staked ${credits(p.spentMicro)})`;
 }
 
-function outcomePill(m: Market) {
-  const kind = m.status === 'void' ? 'void' : m.outcome;
-  return h('span', { class: `pill pill-${kind}` }, kind.toUpperCase());
+function settledRows(m: Market) {
+  if (m.status === 'void') {
+    return SIDES.map(side => outcomeRow(side, 0, 'Void', { pillClass: 'pill-void' }));
+  }
+  return SIDES.map(side => {
+    const won = m.outcome === side;
+    return outcomeRow(side, won ? 1 : 0, won ? 'Won' : 'Lost', { pillClass: won ? '' : 'pill-muted' });
+  });
 }
 
 export function resolvedCard(m: Market, view: View): HTMLElement {
-  const measured =
+  const key = marketKey(m.id);
+  const observed =
     m.settledValue === undefined
       ? 'No reliable count, so every stake was returned.'
-      : `Balloon measured ${m.settledValue} ${metricUnit(m.metric)}. YES needed ${thresholdPhrase(m.comparator, m.threshold, m.metric)}.`;
+      : `Observed ${m.settledValue} ${metricUnit(m.metric)}. Yes needed ${thresholdPhrase(m.comparator, m.threshold, m.metric)}.`;
   return h(
     'article',
     { class: 'card' },
-    h('div', { class: 'eyebrow' }, h('span', {}, m.zone), outcomePill(m)),
-    h('h3', {}, m.question),
-    h('p', {}, measured),
-    h('p', { class: 'explanation small muted' }, m.explanation),
-    resultLine(m, view.positions.get(marketKey(m.id)))
+    cardHead(m, h('span', { class: 'caption' }, m.status === 'void' ? 'Void' : 'Settled')),
+    h('div', { class: 'outcomes' }, ...settledRows(m)),
+    h(
+      'div',
+      { class: 'card-foot' },
+      h('p', {}, observed),
+      meta(view.volumeMicro.get(key) ?? 0n, resultText(m, view.positions.get(key))),
+      why('Why', m.explanation)
+    )
   );
 }

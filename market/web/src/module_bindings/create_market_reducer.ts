@@ -18,4 +18,5 @@ export default {
   threshold: __t.f64(),
   closeAtUnix: __t.f64(),
   b: __t.u32(),
+  rationale: __t.string(),
 };

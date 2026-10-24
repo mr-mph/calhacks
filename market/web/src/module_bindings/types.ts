@@ -57,6 +57,7 @@ export const Market = __t.object("Market", {
   createdBy: __t.identity(),
   createdAt: __t.timestamp(),
   resolvedAt: __t.option(__t.timestamp()),
+  rationale: __t.string(),
 });
 export type Market = __Infer<typeof Market>;
 

@@ -1,16 +1,26 @@
+import '@fontsource/manrope/400.css';
+import '@fontsource/manrope/600.css';
+import '@fontsource/manrope/700.css';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import '@fontsource/charis-sil/400.css';
+import '@fontsource/charis-sil/700.css';
+import './style.css';
 import type { Side } from '../../server/src/lmsr';
-import { openCard, resolvedCard, type Actions, type UiState } from './cards';
+import { openCard, resolvedCard } from './cards';
 import { connect } from './connection';
 import { byId, h } from './dom';
 import { credits, errorText } from './format';
 import type { DbConnection } from './module_bindings';
-import { buildView, marketKey, type View } from './view';
+import { renderNav } from './nav';
+import { createSheet } from './sheet';
+import { buildView, type View } from './view';
 
 const CLOCK_TICK_MS = 15_000;
 const TOAST_MS = 3500;
 
-const ui: UiState = { shares: new Map(), busy: false };
 let conn: DbConnection | undefined;
+let lastView: View | undefined;
 let toastTimer: number | undefined;
 let frame = 0;
 
@@ -23,42 +33,38 @@ function toast(message: string, kind: 'info' | 'error' = 'info'): void {
   toastTimer = window.setTimeout(() => (el.hidden = true), TOAST_MS);
 }
 
-async function runReducer(call: () => Promise<void>, done: string): Promise<void> {
-  ui.busy = true;
-  scheduleRender();
+async function runReducer(call: () => Promise<void>, done: string): Promise<boolean> {
   try {
     await call();
     toast(done);
+    return true;
   } catch (error: unknown) {
     toast(errorText(error), 'error');
-  } finally {
-    ui.busy = false;
-    scheduleRender();
+    return false;
   }
 }
 
-const actions: Actions = {
-  pickShares(marketId, shares) {
-    ui.shares.set(marketKey(marketId), shares);
-    scheduleRender();
-  },
-  buy(marketId, side: Side, shares) {
-    if (!conn) return;
+const sheet = createSheet({
+  buy: (marketId: bigint, side: Side, shares: number) => {
     const c = conn;
-    void runReducer(
+    if (!c) return Promise.resolve(false);
+    return runReducer(
       () => c.reducers.buy({ marketId, side, shares: BigInt(shares) }),
-      `Bought ${shares} ${side.toUpperCase()}`
+      `Bought ${shares} ${side === 'yes' ? 'Yes' : 'No'}`
     );
   },
-};
+});
+
+function openSheet(marketId: bigint, side: Side): void {
+  if (lastView) sheet.open(marketId, side, lastView);
+}
 
 function renderWallet(view: View): void {
   const wallet = byId('wallet');
-  wallet.replaceChildren(
-    ...(view.account
-      ? [h('span', { class: 'muted' }, view.account.name), h('span', { class: 'num' }, `${credits(view.account.balanceMicro)} credits`)]
-      : [])
-  );
+  wallet.hidden = !view.account;
+  if (view.account) {
+    wallet.replaceChildren(h('span', { class: 'caption' }, view.account.name), h('span', { class: 'num' }, credits(view.account.balanceMicro)));
+  }
   byId('register').hidden = view.account !== undefined;
 }
 
@@ -72,9 +78,12 @@ function render(): void {
   if (!conn) return;
   const focusedKey = document.activeElement?.getAttribute('data-key');
   const view = buildView(conn, conn.identity);
+  lastView = view;
   renderWallet(view);
-  renderList('open', view.open.map(m => openCard(m, view, ui, actions)), 'No open markets right now.');
-  renderList('resolved', view.resolved.map(m => resolvedCard(m, view)), 'Nothing resolved yet.');
+  renderList('open', view.open.map(m => openCard(m, view, openSheet)), 'No open markets right now. New ones open as the balloon starts counting.');
+  renderList('resolved', view.resolved.map(m => resolvedCard(m, view)), 'Nothing settled yet.');
+  byId('status-text').textContent = `Live · ${view.open.length} open`;
+  sheet.refresh(view);
   if (focusedKey) document.querySelector<HTMLElement>(`[data-key="${focusedKey}"]`)?.focus();
 }
 
@@ -97,21 +106,22 @@ function wireRegister(): void {
   byId<HTMLFormElement>('register').addEventListener('submit', event => {
     event.preventDefault();
     const name = byId<HTMLInputElement>('name').value.trim();
-    if (!conn || !name) return;
     const c = conn;
+    if (!c || !name) return;
     void runReducer(() => c.reducers.register({ name }), `Welcome, ${name}. You have 1000 credits.`);
   });
 }
 
 function setLink(state: 'live' | 'down'): void {
   byId('live').dataset.state = state;
-  if (state === 'down') toast('Lost the connection. Reconnecting.', 'error');
+  if (state === 'down') {
+    byId('status-text').textContent = 'Offline · reconnecting';
+    toast('Lost the connection. Reconnecting.', 'error');
+  }
 }
 
+renderNav();
 wireRegister();
-conn = connect({
-  onReady: scheduleRender,
-  onLinkChange: setLink,
-});
+conn = connect({ onReady: scheduleRender, onLinkChange: setLink });
 watchTables(conn);
 window.setInterval(scheduleRender, CLOCK_TICK_MS);

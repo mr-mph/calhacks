@@ -30,4 +30,5 @@ export default __t.row({
   createdBy: __t.identity().name("created_by"),
   createdAt: __t.timestamp().name("created_at"),
   resolvedAt: __t.option(__t.timestamp()).name("resolved_at"),
+  rationale: __t.string(),
 });
