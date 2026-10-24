@@ -28,7 +28,7 @@ type Result =
 export async function startSend(ctx: MutationCtx, alert: Doc<"alerts">): Promise<void> {
   const attempts = (alert.jira?.attempts ?? 0) + 1;
   await ctx.db.patch(alert._id, { jira: { status: "sending", attempts, updatedAt: Date.now() / 1000 } });
-  await ctx.scheduler.runAfter(0, internal.jira.send, { id: alert._id });
+  await ctx.scheduler.runAfter(0, internal.jira.send, { id: alert._id, attempt: attempts });
 }
 
 async function frameObservation(ctx: QueryCtx, alert: Doc<"alerts">) {
@@ -99,9 +99,10 @@ async function post(body: Payload): Promise<Result> {
     return { status: "sent", outcome, issueKey: text(parsed.issueKey), reason: text(parsed.reason) };
   } catch (e) {
     const timedOut = (e as Error).name === "AbortError";
+    if (!timedOut) console.error("Jira request failed", e);
     return {
       status: "failed",
-      error: timedOut ? `Jira didn't answer within ${TIMEOUT_MS / 1000} s` : `Couldn't reach Jira: ${(e as Error).message}`,
+      error: timedOut ? `Jira didn't answer within ${TIMEOUT_MS / 1000} s` : "Couldn't reach Jira (network error, see the Convex logs)",
     };
   } finally {
     clearTimeout(timer);
@@ -109,23 +110,25 @@ async function post(body: Payload): Promise<Result> {
 }
 
 export const send = internalAction({
-  args: { id: v.id("alerts") },
-  handler: async (ctx, { id }) => {
+  args: { id: v.id("alerts"), attempt: v.number() },
+  handler: async (ctx, { id, attempt }) => {
     let result: Result;
     try {
       const body = await ctx.runQuery(internal.jira.payload, { id });
       result = typeof body === "string" ? { status: "failed", error: body } : await post(body);
     } catch (e) {
-      result = { status: "failed", error: `Sending failed: ${(e as Error).message.slice(0, MAX_TEXT)}` };
+      console.error("Jira send crashed", id, e);
+      result = { status: "failed", error: "Sending failed inside the server, see the Convex logs" };
     }
     if (result.status === "failed") console.error("Jira send failed", id, result.error);
-    await ctx.runMutation(internal.jira.record, { id, result });
+    await ctx.runMutation(internal.jira.record, { id, attempt, result });
   },
 });
 
 export const record = internalMutation({
   args: {
     id: v.id("alerts"),
+    attempt: v.number(),
     result: v.object({
       status: jiraStatus,
       outcome: v.optional(v.string()),
@@ -134,11 +137,10 @@ export const record = internalMutation({
       error: v.optional(v.string()),
     }),
   },
-  handler: async (ctx, { id, result }) => {
+  handler: async (ctx, { id, attempt, result }) => {
     const alert = await ctx.db.get(id);
-    if (!alert) return;
-    await ctx.db.patch(id, {
-      jira: { ...result, attempts: alert.jira?.attempts ?? 1, updatedAt: Date.now() / 1000 },
-    });
+    // A stalled send that answers after a retry started must not overwrite the newer attempt's state.
+    if (!alert || (alert.jira && alert.jira.attempts > attempt)) return;
+    await ctx.db.patch(id, { jira: { ...result, attempts: attempt, updatedAt: Date.now() / 1000 } });
   },
 });
