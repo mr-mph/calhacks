@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Balloon site",
+  "description": "What each part of a reference frame means. Coordinates are pixels in the reference frame. See docs/architecture.md section 2.",
+  "type": "object",
+  "required": ["site", "reference_frame", "zones"],
+  "additionalProperties": false,
+  "properties": {
+    "site": {"type": "string", "minLength": 1},
+    "reference_frame": {
+      "type": "string",
+      "description": "Image path: absolute, relative to this JSON file, or relative to the session folder (stills/<file>.jpg)."
+    },
+    "zones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "polygon"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "kind": {"enum": ["lot", "beach", "water", "crossing"]},
+          "polygon": {"$ref": "#/$defs/polygon"},
+          "capacity": {"type": "integer", "minimum": 1, "description": "Lots only: spaces in the lot, used for occupancy when no spaces are drawn."}
+        }
+      }
+    },
+    "spaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "zone", "polygon"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "zone": {"type": "string", "description": "id of the lot zone this space belongs to"},
+          "polygon": {"$ref": "#/$defs/polygon"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "polygon": {
+      "type": "array",
+      "minItems": 3,
+      "items": {"type": "array", "prefixItems": [{"type": "number"}, {"type": "number"}], "minItems": 2, "maxItems": 2}
+    }
+  }
+}

@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Site Editor</title>
+<style>
+:root {
+  --bg: #eef1ee;
+  --surface: #ffffff;
+  --ink: #1b2420;
+  --muted: #5a6661;
+  --line: #d5dcd8;
+  --accent: #0f6e63;
+  --accent-ink: #ffffff;
+  --danger: #b3261e;
+  --lot: #d18a00;
+  --beach: #b8955a;
+  --water: #1f6fb2;
+  --crossing: #b0307a;
+  --space: #2a9d50;
+  --draft: #ff3b30;
+  --radius: 6px;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 1px rgb(0 0 0 / 0.06);
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --text-sm: 12px;
+  --text-md: 14px;
+  --text-lg: 16px;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font: var(--text-md)/1.45 var(--sans); display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px; }
+main { position: relative; display: grid; place-items: center; overflow: hidden; padding: 16px; }
+canvas { max-width: 100%; max-height: 100%; background: #222; box-shadow: var(--shadow); cursor: crosshair; }
+canvas[data-mode="select"] { cursor: default; }
+.empty { position: absolute; inset: 16px; display: grid; place-items: center; text-align: center; color: var(--muted);
+  border: 2px dashed var(--line); border-radius: var(--radius); }
+aside { background: var(--surface); box-shadow: var(--shadow); overflow-y: auto; padding: 16px; display: flex;
+  flex-direction: column; gap: 16px; }
+h1 { font-size: var(--text-lg); margin: 0; text-wrap: balance; }
+h2 { font-size: var(--text-sm); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0; }
+section { display: flex; flex-direction: column; gap: 8px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: var(--text-sm); color: var(--muted); }
+input, select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 6px 8px; }
+.row { display: flex; gap: 8px; }
+.row > * { flex: 1; min-width: 0; }
+input, select { width: 100%; }
+button { font: inherit; border: 0; border-radius: var(--radius); padding: 7px 10px; background: var(--bg);
+  color: var(--ink); cursor: pointer; transition-property: scale, background-color; transition-duration: 120ms; }
+button:active { scale: 0.96; }
+button:hover { background: var(--line); }
+button.primary { background: var(--accent); color: var(--accent-ink); }
+button.danger { color: var(--danger); }
+button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+button[aria-pressed="true"] kbd { background: rgb(255 255 255 / 0.18); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+kbd { font: var(--text-sm) var(--mono); background: var(--bg); padding: 0 4px; border-radius: 3px; }
+.modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.modes button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; }
+ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; max-height: 220px;
+  overflow-y: auto; }
+li button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  background: transparent; text-align: left; }
+li button[aria-current="true"] { background: var(--bg); }
+.swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.meta { font: var(--text-sm) var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.status { font-size: var(--text-sm); color: var(--muted); min-height: 1.45em; }
+.status.error { color: var(--danger); }
+.help { font-size: var(--text-sm); color: var(--muted); margin: 0; padding-left: 16px; }
+.file { position: relative; overflow: hidden; flex-direction: row; justify-content: center; padding: 7px 10px;
+  border-radius: var(--radius); background: var(--bg); color: var(--ink); font-size: var(--text-md); cursor: pointer; }
+.file:hover { background: var(--line); }
+.file:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+@media (max-width: 760px) { body { grid-template-columns: 1fr; grid-template-rows: 60vh auto; } }
+</style>
+</head>
+<body>
+<main id="stage">
+  <canvas id="canvas" width="960" height="540" data-mode="zone" tabindex="0"
+    aria-label="Reference frame. Click to add polygon points; Enter closes the polygon."></canvas>
+  <div class="empty" id="empty">Open a reference frame (a still from the balloon) or drop an image here.</div>
+</main>
+<aside>
+  <h1>Site Editor</h1>
+
+  <section aria-labelledby="files-h">
+    <h2 id="files-h">Files</h2>
+    <div class="row">
+      <label class="file"><span>Open image</span><input id="image-input" type="file" accept="image/*"></label>
+      <label class="file"><span>Open site JSON</span><input id="json-input" type="file" accept=".json,application/json"></label>
+    </div>
+    <label>Site name<input id="site-name" value="new-site" autocomplete="off"></label>
+    <label>Reference frame path<input id="reference" placeholder="stills/1792880000.000.jpg" autocomplete="off"></label>
+  </section>
+
+  <section aria-labelledby="draw-h">
+    <h2 id="draw-h">Draw</h2>
+    <div class="modes" role="group" aria-label="Tool">
+      <button data-mode="select" aria-pressed="false">Select <kbd>V</kbd></button>
+      <button data-mode="zone" aria-pressed="true">Zone <kbd>Z</kbd></button>
+      <button data-mode="space" aria-pressed="false">Space <kbd>S</kbd></button>
+      <button data-mode="grid" aria-pressed="false">Grid <kbd>G</kbd></button>
+    </div>
+    <div class="row">
+      <label>New zone kind
+        <select id="zone-kind">
+          <option value="lot">lot</option><option value="beach">beach</option>
+          <option value="water">water</option><option value="crossing">crossing</option>
+        </select>
+      </label>
+      <label>Spaces belong to<select id="space-zone"></select></label>
+    </div>
+    <div class="row">
+      <label>Grid rows<input id="grid-rows" type="number" min="1" value="2"></label>
+      <label>Grid columns<input id="grid-cols" type="number" min="1" value="10"></label>
+      <label>Space prefix<input id="grid-prefix" value="A" autocomplete="off"></label>
+    </div>
+    <p class="status" id="draft-status" aria-live="polite"></p>
+  </section>
+
+  <section aria-labelledby="sel-h" id="selected" hidden>
+    <h2 id="sel-h">Selected</h2>
+    <label>Id<input id="sel-id" autocomplete="off"></label>
+    <label id="sel-kind-wrap">Kind
+      <select id="sel-kind">
+        <option value="lot">lot</option><option value="beach">beach</option>
+        <option value="water">water</option><option value="crossing">crossing</option>
+      </select>
+    </label>
+    <label id="sel-cap-wrap">Capacity (cars)<input id="sel-cap" type="number" min="1" placeholder="optional"></label>
+    <label id="sel-zone-wrap">Lot zone<select id="sel-zone"></select></label>
+    <button class="danger" id="delete">Delete <kbd>Del</kbd></button>
+  </section>
+
+  <section aria-labelledby="list-h">
+    <h2 id="list-h">Zones and spaces <span class="meta" id="counts"></span></h2>
+    <ul id="list"></ul>
+  </section>
+
+  <section aria-labelledby="out-h">
+    <h2 id="out-h">Save</h2>
+    <button class="primary" id="download">Download site JSON <kbd>⌘S</kbd></button>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+  </section>
+
+  <ul class="help" aria-label="Keyboard shortcuts">
+    <li><kbd>Enter</kbd> or double-click closes a polygon; clicking the first point also closes it</li>
+    <li><kbd>Backspace</kbd> removes the last point, <kbd>Esc</kbd> cancels the polygon</li>
+    <li>Grid: click the four corners of a row of spaces in order (top-left, top-right, bottom-right, bottom-left)</li>
+    <li><kbd>Tab</kbd> through the list to select; <kbd>Del</kbd> deletes the selection</li>
+  </ul>
+</aside>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const canvas = $("canvas");
+const ctx = canvas.getContext("2d");
+const css = getComputedStyle(document.documentElement);
+const color = (name) => css.getPropertyValue(name).trim();
+const CLOSE_PX = 10;
+
+const state = { image: null, imageName: "", mode: "zone", zones: [], spaces: [], draft: [], hover: null, selected: null };
+
+function toImage(ev) {
+  const r = canvas.getBoundingClientRect();
+  return [Math.round((ev.clientX - r.left) * canvas.width / r.width), Math.round((ev.clientY - r.top) * canvas.height / r.height)];
+}
+
+function screenScale() {
+  return canvas.width / canvas.getBoundingClientRect().width;
+}
+
+function pointInPolygon([x, y], poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+function shapeColor(shape) {
+  return shape.zone !== undefined ? color("--space") : color(`--${shape.kind}`);
+}
+
+function tracePolygon(poly) {
+  ctx.beginPath();
+  poly.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.closePath();
+}
+
+function drawShape(shape, isSelected) {
+  const c = shapeColor(shape);
+  const s = screenScale();
+  tracePolygon(shape.polygon);
+  ctx.fillStyle = c + (isSelected ? "66" : "33");
+  ctx.fill();
+  ctx.lineWidth = (isSelected ? 3 : 1.5) * s;
+  ctx.strokeStyle = c;
+  ctx.stroke();
+  const xs = shape.polygon.map((p) => p[0]);
+  const roomForLabel = (Math.max(...xs) - Math.min(...xs)) / s > 8 * shape.id.length;
+  if (!roomForLabel && !isSelected) return;
+  const [x, y] = shape.polygon[0];
+  ctx.font = `${12 * s}px ${color("--mono")}`;
+  ctx.fillStyle = "#fff";
+  ctx.fillText(shape.id, x + 3 * s, y + 13 * s);
+}
+
+function drawDraft() {
+  if (!state.draft.length) return;
+  const s = screenScale();
+  const pts = state.hover ? [...state.draft, state.hover] : state.draft;
+  ctx.beginPath();
+  pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.strokeStyle = color("--draft");
+  ctx.lineWidth = 2 * s;
+  ctx.stroke();
+  state.draft.forEach(([x, y], i) => {
+    ctx.beginPath();
+    ctx.arc(x, y, (i ? 3 : 5) * s, 0, Math.PI * 2);
+    ctx.fillStyle = color("--draft");
+    ctx.fill();
+  });
+}
+
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (state.image) ctx.drawImage(state.image, 0, 0);
+  [...state.zones, ...state.spaces].forEach((shape) => drawShape(shape, shape === state.selected));
+  drawDraft();
+}
+
+function lots() {
+  return state.zones.filter((z) => z.kind === "lot");
+}
+
+function nextId(prefix, taken) {
+  let n = 1;
+  const pad = (k) => String(k).padStart(2, "0");
+  while (taken.has(`${prefix}${pad(n)}`)) n += 1;
+  return `${prefix}${pad(n)}`;
+}
+
+function allIds() {
+  return new Set([...state.zones, ...state.spaces].map((s) => s.id));
+}
+
+function say(el, text, isError = false) {
+  el.textContent = text;
+  el.classList.toggle("error", isError);
+}
+
+function draftHint() {
+  const need = state.mode === "grid" ? 4 : 3;
+  if (state.mode === "select") return say($("draft-status"), "Click a shape to select it.");
+  if (state.mode !== "zone" && !lots().length) return say($("draft-status"), "Draw a lot zone first; spaces belong to a lot.", true);
+  const left = Math.max(need - state.draft.length, 0);
+  say($("draft-status"), state.draft.length
+    ? `${state.draft.length} points${left ? `, ${left} more needed` : ", Enter to finish"}`
+    : `Click to start a ${state.mode === "grid" ? "grid of spaces" : state.mode}.`);
+}
+
+function syncZoneSelects() {
+  for (const sel of [$("space-zone"), $("sel-zone")]) {
+    const keep = sel.value;
+    sel.replaceChildren(...lots().map((z) => new Option(z.id, z.id)));
+    if (lots().some((z) => z.id === keep)) sel.value = keep;
+  }
+}
+
+function syncList() {
+  const items = [...state.zones, ...state.spaces].map((shape) => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    const sw = document.createElement("span");
+    sw.className = "swatch";
+    sw.style.background = shapeColor(shape);
+    const name = document.createElement("span");
+    name.textContent = shape.id;
+    const meta = document.createElement("span");
+    meta.className = "meta";
+    meta.textContent = shape.zone !== undefined ? `space in ${shape.zone}` : shape.kind + (shape.capacity ? ` · ${shape.capacity}` : "");
+    btn.append(sw, name, meta);
+    btn.setAttribute("aria-current", String(shape === state.selected));
+    btn.addEventListener("click", () => select(shape));
+    li.append(btn);
+    return li;
+  });
+  $("list").replaceChildren(...items);
+  $("counts").textContent = `${state.zones.length} zones · ${state.spaces.length} spaces`;
+}
+
+function syncSelected() {
+  const s = state.selected;
+  $("selected").hidden = !s;
+  if (!s) return;
+  const isSpace = s.zone !== undefined;
+  $("sel-id").value = s.id;
+  $("sel-kind-wrap").hidden = isSpace;
+  $("sel-cap-wrap").hidden = isSpace || s.kind !== "lot";
+  $("sel-zone-wrap").hidden = !isSpace;
+  if (!isSpace) $("sel-kind").value = s.kind;
+  $("sel-cap").value = s.capacity ?? "";
+  if (isSpace) $("sel-zone").value = s.zone;
+}
+
+function refresh() {
+  syncZoneSelects();
+  syncList();
+  syncSelected();
+  draftHint();
+  render();
+}
+
+function select(shape) {
+  state.selected = shape;
+  refresh();
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  state.draft = [];
+  canvas.dataset.mode = mode;
+  document.querySelectorAll(".modes button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+  refresh();
+}
+
+function gridSpaces(corners, rows, cols, prefix, zone) {
+  const [p0, p1, p2, p3] = corners;
+  const at = (u, v) => [0, 1].map((k) => Math.round((1 - v) * ((1 - u) * p0[k] + u * p1[k]) + v * ((1 - u) * p3[k] + u * p2[k])));
+  const taken = allIds();
+  const spaces = [];
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      const id = nextId(prefix, taken);
+      taken.add(id);
+      const [u0, u1, v0, v1] = [c / cols, (c + 1) / cols, r / rows, (r + 1) / rows];
+      spaces.push({ id, zone, polygon: [at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1)] });
+    }
+  }
+  return spaces;
+}
+
+function finishDraft() {
+  const pts = state.draft;
+  if (state.mode === "zone" && pts.length >= 3) {
+    const kind = $("zone-kind").value;
+    const zone = { id: nextId(`${kind}-`, allIds()), kind, polygon: pts };
+    state.zones = [...state.zones, zone];
+    state.draft = [];
+    return select(zone);
+  }
+  const zone = $("space-zone").value;
+  if (!zone) return draftHint();
+  if (state.mode === "space" && pts.length >= 3) {
+    const space = { id: nextId($("grid-prefix").value || "S", allIds()), zone, polygon: pts };
+    state.spaces = [...state.spaces, space];
+    state.draft = [];
+    return select(space);
+  }
+  if (state.mode === "grid" && pts.length === 4) {
+    const rows = Math.max(1, parseInt($("grid-rows").value, 10) || 1);
+    const cols = Math.max(1, parseInt($("grid-cols").value, 10) || 1);
+    const made = gridSpaces(pts, rows, cols, $("grid-prefix").value || "S", zone);
+    state.spaces = [...state.spaces, ...made];
+    state.draft = [];
+    say($("status"), `Added ${made.length} spaces to ${zone}.`);
+    return select(made[0]);
+  }
+}
+
+function addPoint(p) {
+  const first = state.draft[0];
+  const near = first && Math.hypot(first[0] - p[0], first[1] - p[1]) < CLOSE_PX * screenScale();
+  if (near && state.draft.length >= 3) return finishDraft();
+  state.draft = [...state.draft, p];
+  if (state.mode === "grid" && state.draft.length === 4) return finishDraft();
+  draftHint();
+  render();
+}
+
+function shapeAt(p) {
+  return [...state.spaces, ...state.zones].reverse().find((s) => pointInPolygon(p, s.polygon)) || null;
+}
+
+function deleteSelected() {
+  const s = state.selected;
+  if (!s) return;
+  state.zones = state.zones.filter((z) => z !== s);
+  state.spaces = state.spaces.filter((x) => x !== s && x.zone !== s.id);
+  state.selected = null;
+  say($("status"), `Deleted ${s.id}${s.zone === undefined ? " and its spaces" : ""}.`);
+  refresh();
+}
+
+function siteErrors() {
+  const ids = [...state.zones, ...state.spaces].map((s) => s.id);
+  const dup = ids.find((id, i) => ids.indexOf(id) !== i);
+  if (!$("site-name").value.trim()) return "Give the site a name.";
+  if (!$("reference").value.trim()) return "Set the reference frame path.";
+  if (!state.zones.length) return "Draw at least one zone.";
+  if (dup) return `Id ${dup} is used twice.`;
+  const lotIds = new Set(lots().map((z) => z.id));
+  const orphan = state.spaces.find((s) => !lotIds.has(s.zone));
+  if (orphan) return `Space ${orphan.id} is not in a lot zone.`;
+  return null;
+}
+
+function siteJson() {
+  const zone = ({ id, kind, polygon, capacity }) => (kind === "lot" && capacity ? { id, kind, polygon, capacity } : { id, kind, polygon });
+  return {
+    site: $("site-name").value.trim(),
+    reference_frame: $("reference").value.trim(),
+    zones: state.zones.map(zone),
+    spaces: state.spaces.map(({ id, zone: z, polygon }) => ({ id, zone: z, polygon })),
+  };
+}
+
+function download() {
+  const problem = siteErrors();
+  if (problem) return say($("status"), problem, true);
+  const site = siteJson();
+  const blob = new Blob([JSON.stringify(site, null, 1)], { type: "application/json" });
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `${site.site}.json` });
+  a.click();
+  URL.revokeObjectURL(a.href);
+  say($("status"), `Downloaded ${site.site}.json. Save it in ground/sites/ next to the reference image.`);
+}
+
+function loadImageFile(file) {
+  if (!file || !file.type.startsWith("image/")) return say($("status"), "That file is not an image.", true);
+  const img = new Image();
+  img.onload = () => {
+    state.image = img;
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    $("empty").hidden = true;
+    if (!$("reference").value) $("reference").value = file.name;
+    say($("status"), `Loaded ${file.name} (${img.naturalWidth} x ${img.naturalHeight} px).`);
+    refresh();
+    canvas.focus();
+  };
+  img.onerror = () => say($("status"), `Could not read ${file.name}.`, true);
+  img.src = URL.createObjectURL(file);
+}
+
+async function loadSiteFile(file) {
+  try {
+    const site = JSON.parse(await file.text());
+    $("site-name").value = site.site || "";
+    $("reference").value = site.reference_frame || "";
+    state.zones = (site.zones || []).map((z) => ({ ...z }));
+    state.spaces = (site.spaces || []).map((s) => ({ ...s }));
+    state.selected = null;
+    say($("status"), `Loaded ${file.name}: ${state.zones.length} zones, ${state.spaces.length} spaces. Open its reference image to see them.`);
+    refresh();
+  } catch (e) {
+    say($("status"), `Could not read ${file.name}: ${e.message}`, true);
+  }
+}
+
+function editSelected(field, value) {
+  const s = state.selected;
+  if (!s) return;
+  if (field === "id") {
+    const id = value.trim();
+    if (!id) return;
+    if (s.zone === undefined) state.spaces.forEach((sp) => { if (sp.zone === s.id) sp.zone = id; });
+    s.id = id;
+  }
+  if (field === "kind") s.kind = value;
+  if (field === "capacity") s.capacity = value ? Math.max(1, parseInt(value, 10)) : undefined;
+  if (field === "zone") s.zone = value;
+  refresh();
+}
+
+canvas.addEventListener("click", (ev) => {
+  if (!state.image) return;
+  const p = toImage(ev);
+  if (state.mode === "select") return select(shapeAt(p));
+  if (state.mode !== "zone" && !lots().length) return draftHint();
+  addPoint(p);
+});
+canvas.addEventListener("dblclick", (ev) => { ev.preventDefault(); finishDraft(); });
+canvas.addEventListener("mousemove", (ev) => {
+  if (!state.draft.length) return;
+  state.hover = toImage(ev);
+  render();
+});
+canvas.addEventListener("mouseleave", () => { state.hover = null; render(); });
+
+const stage = $("stage");
+stage.addEventListener("dragover", (ev) => ev.preventDefault());
+stage.addEventListener("drop", (ev) => { ev.preventDefault(); loadImageFile(ev.dataTransfer.files[0]); });
+$("image-input").addEventListener("change", (ev) => loadImageFile(ev.target.files[0]));
+$("json-input").addEventListener("change", (ev) => ev.target.files[0] && loadSiteFile(ev.target.files[0]));
+document.querySelectorAll(".modes button").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+$("download").addEventListener("click", download);
+$("delete").addEventListener("click", deleteSelected);
+$("sel-id").addEventListener("change", (ev) => editSelected("id", ev.target.value));
+$("sel-kind").addEventListener("change", (ev) => editSelected("kind", ev.target.value));
+$("sel-cap").addEventListener("change", (ev) => editSelected("capacity", ev.target.value));
+$("sel-zone").addEventListener("change", (ev) => editSelected("zone", ev.target.value));
+
+const MODE_KEYS = { v: "select", z: "zone", s: "space", g: "grid" };
+document.addEventListener("keydown", (ev) => {
+  if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === "s") { ev.preventDefault(); return download(); }
+  if (ev.target.closest("input, select")) return;
+  const key = ev.key.toLowerCase();
+  if (MODE_KEYS[key] && !ev.metaKey && !ev.ctrlKey) return setMode(MODE_KEYS[key]);
+  if (key === "enter" && state.draft.length) { ev.preventDefault(); return finishDraft(); }
+  if (key === "escape") { state.draft = []; return refresh(); }
+  if (key === "backspace" && state.draft.length) { ev.preventDefault(); state.draft = state.draft.slice(0, -1); return refresh(); }
+  if ((key === "delete" || key === "backspace") && state.selected) { ev.preventDefault(); deleteSelected(); }
+});
+
+refresh();
+</script>
+</body>
+</html>
