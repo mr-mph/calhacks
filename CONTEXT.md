@@ -8,11 +8,22 @@
 
 We're building a **1U CubeSat-style payload** at **Cal Hacks 13.0** (October 23-25, 2026, San Francisco). Team of 4, no ham licence.
 
-**Primary mission:** Fly the payload on a helium balloon (target 30,000-50,000 ft), logging atmospheric data and video the whole way up, with a parachute recovery. The software records everything to the SD card regardless of connectivity, and serves a live dashboard over Wi-Fi when in range.
+**Decided Saturday Oct 24: tethered observation, not free flight.** The balloon holds the camera a few hundred feet
+over one place (a beach, a parking lot, a street corner) for hours. Drones can't stay up that long and are banned in
+Golden Gate National Parks. Satellites can't stare at one spot or see a parking space. The legal side has been checked
+by the team. The launch happens outside, not in the venue.
 
-**Fallback mission:** If a free flight isn't feasible (weather, helium, landing prediction), run a tethered flight to modest altitude plus drop tests and freezer tests. Still a solid demo -- the sensor data, dashboard, and video work identically.
+One view serves three groups:
+- **Beachgoers (public benefit):** spot rip currents and people in the water at Ocean Beach, and have Claude write the alert.
+- **Drivers (parking):** a live map of open spaces, with **surge pricing** set from live occupancy.
+- **Markets (finance):** counts of cars and people crossing a street feed a **prediction market** ("over/under 40 cars
+  by 5 PM") and an analyst agent.
 
-**The hackathon started Friday night (Oct 23). Real work begins Saturday morning.**
+Why a balloon, the numbers, and sources: `docs/pitch.md`. Sections 3 and 4 below are the old free-flight notes,
+kept for reference.
+
+**Deadlines:** Devpost submission by **9 AM Sunday** (draft it Saturday night). Judging 10:30 AM to 12:30 PM at our
+table; the whole team must be there. Personal hotspots are banned *inside* the venue; outdoors is fine.
 
 ---
 
@@ -42,6 +53,8 @@ All hardware comes from the **MLH hardware lab** unless noted. Grab the Pi early
 ---
 
 ## 3. Altitude, Regulations & Tracking
+
+> Free-flight notes from Friday, kept for reference. The plan is now a tethered flight (see section 1).
 
 ### Altitude & Cutdown
 - Weather balloons burst near 98,000 ft. Reaching 30-50k ft requires an active cutdown.
@@ -113,22 +126,34 @@ Pick by the **landing predictor**, not by distance from the venue.
 
 ---
 
-## 5. Open Decisions & Saturday Plan
+## 5. Prize Plan (decided Saturday Oct 24)
 
-### Tonight (Friday)
-1. Text Berkeley Balloons: can they fill balloons, rent a tank + regulator, price, do they stock 36"?
-2. Ask MLH + mentor channel for LoRa nodes and the exact Grove accelerometer/barometer stock
-3. Weigh the full payload -- this decides chute size, helium amount, and whether the Pi stays
-4. **Lock in: free flight vs. tethered flight + drop tests** (decide by Saturday morning)
+Every project is judged for the Cal Hacks prizes automatically. Sponsor tracks are ticked on Devpost at submission,
+and there's no limit on how many. Full criteria and links: `docs/pitch.md`.
 
-### Saturday Schedule
-1. **9 AM** -- Berkeley Balloons and Events
-2. **10 AM** -- REI Berkeley (tether line)
-3. **10 AM** -- Discount Fabrics (ripstop for parachute)
-4. Build parachute, drop-test dummy payload
-5. Sensor dry run on real Pi hardware
-6. **Fly free only if:** predictor shows clean landing AND helium is secured
-7. **Otherwise:** tethered flight + drop tests (still a solid demo)
+| Track | Status | What we build for it |
+|---|---|---|
+| Cal Hacks: Overall, Best Hardware, People-First, Planet-First, Most Technically Complex, Most Creative | Automatic | The balloon working live |
+| **Anthropic: Claude for Public Benefit** ($5k credits + 1 yr Max 20x) | In | Claude reads frames plus detections and writes the Ocean Beach rip-current alert. Judges want a named community and one conversation with a real person: talk to a surfer, lifeguard or beachgoer before judging |
+| **Hyphenate: Autonomous Systems for Finance** ($8k / $5k / $3k) | In | Two agents on the balloon's counts: a **surge-pricing** agent that sets parking prices from live occupancy, and a **market** agent that runs prediction markets on counts ("cars in the lot by 5 PM", "people crossing per hour"). Each logs its decisions and says when it isn't sure |
+| **Convex** ($5k, one winner) | In if time | The live backend for the parking map and beach alerts on phones |
+| **Spacetime** ($2,048 / $1,024 / $512) | In | The live prediction market (bets, prices, settlement), which is one of Spacetime's own example uses. Spacetime runs the market; Convex runs the map. Each must be central to its feature |
+| **SpaceXAI** (Cursor keyboard, $400 on Devpost) | In | Built in Cursor. The balloon as ground truth for satellites: our 7 cm labels check a model on free satellite images of the same place. Ask at their booth whether the Grok API is required |
+| Atlassian Agentic Workforce (AirPods Max) | If someone has time | A Forge app: balloon alerts become Jira incidents for the patrol, and each day becomes a Confluence report |
+| Microsoft: Built for the Real World (Surface each) | Maybe | The Hyphenate agent, pitched on customer understanding and path to production |
+
+**Fine-tuning** isn't a track; it's what makes the project technically deep. Start from YOLO-nano, train on public
+overhead datasets (CARPK and PKLot for parking, a published rip-current set), then label our own frames with Claude,
+fix about 200 by hand, and retrain. A model that small trains in under an hour on a MacBook. RunPod gives free GPU
+credits if we need more (QR code in `#spons-runpod`, or their booth).
+
+### Order of work
+1. **Get the Pi reachable.** Nothing flies until it is. The hardware desk on the Mezzanine lends Pis with fresh microSD cards.
+2. Fly once, record everything (stills every 2 s, video, sensors). Replay mode covers the demo if we can't fly at judging.
+3. Detector: public datasets first, then our own frames.
+4. Live map (Convex), market (Spacetime), pricing and market agents (Hyphenate), alerts (Claude).
+5. SpaceXAI satellite comparison, then Atlassian or Microsoft if time is left.
+6. Devpost draft Saturday night: demo video, repo link, and every track ticked.
 
 ---
 
@@ -343,11 +368,12 @@ python3 tests/test_drivers_fake_i2c.py    # driver math tests, no hardware
 
 ### Not Yet Done
 - **First real-hardware run** -- needs: `i2cdetect`, `test_sensor.py`, confirm ustreamer/ffmpeg, verify Grove ADC address (0x04 vs 0x08)
-- **Arduino cutdown integration** -- code concept exists but nothing written
-- **Parachute** -- not yet sourced or built
-- **Physical payload assembly** -- PETG frame, styrofoam box, camera window
-- **Flight test** -- tethered test before any free flight
-- **Tracking solution** -- phone GPS + SIM cards, LoRa if available
+- **Physical payload assembly** -- PETG frame, styrofoam box, camera window pointing down, BMP280 outside the box in shade
+- **Tethered flight** -- record a full session over a lot and the water
+- **Detector** -- YOLO-nano fine-tuned on CARPK/PKLot and a rip-current set, then on our own frames
+- **Live map and alerts** (Convex), **prediction market** (Spacetime), **surge-pricing and market agents** (Hyphenate), **Claude alert writer** (Anthropic)
+- **Satellite comparison** for SpaceXAI
+- Dropped with the free flight: Arduino cutdown, parachute, GPS/LoRa tracking
 
 ### Ideas (Not Started)
 - Metre scale bar on mosaic

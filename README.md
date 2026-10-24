@@ -2,6 +2,13 @@
 
 Contributors (people or AI agents): read **CLAUDE.md** first for architecture, conventions, and how to test without hardware.
 
+| Doc | What's in it |
+|---|---|
+| [CONTEXT.md](CONTEXT.md) | Mission, prize plan, order of work, full software walkthrough |
+| [docs/pitch.md](docs/pitch.md) | Why a balloon beats drones and satellites, with numbers and sources; demo storyline |
+| [docs/tracks.md](docs/tracks.md) | Every Cal Hacks track, rules, deadlines, free credits, venue hardware |
+| [docs/launch-plan.md](docs/launch-plan.md) | Helium, lift and tether |
+
 Tethered helium-balloon payload on a Raspberry Pi 4 + Grove Base Hat + Logitech USB webcam.
 The Pi logs every sensor and the camera to its SD card no matter what, and serves a live dashboard
 (video + real-time charts) to any phone or laptop on the same Wi-Fi (or over the USB-C cable).
@@ -31,7 +38,8 @@ Data layout on the SD card: `/data/balloon/sessions/<YYYYmmdd-HHMMSS>/`
   then the Pi's USB-C port is also an Ethernet link: `ssh tarun@balloon.local`. For internet on the Pi (apt during
   setup) turn on macOS *System Settings > General > Sharing > Internet Sharing* from your uplink to "RNDIS/Ethernet Gadget".
 - **Phone hotspot** (flight/demo): the balloon is on a string, not a cable, so the dashboard reaches the ground over Wi-Fi.
-  Use a phone hotspot, not venue Wi-Fi (venue networks block device-to-device traffic). Over the USB link:
+  Use a phone hotspot, not venue Wi-Fi (venue networks block device-to-device traffic). Outdoors only: Cal Hacks bans
+  personal hotspots inside the venue. Over the USB link:
   `sudo nmcli dev wifi connect "<hotspot ssid>" password "<password>"`.
 
 ## 1. Flash the Pi (once)

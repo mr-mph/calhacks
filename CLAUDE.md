@@ -9,6 +9,14 @@ A tethered helium-balloon payload for CalHacks (Oct 2026). A Raspberry Pi 4 with
 Logitech USB webcam logs sensors + video to its SD card and serves a live dashboard over Wi-Fi (phone hotspot) or
 over the USB-C cable. Weight budget is ~400 g total, power is a USB-C power bank. Team of 4, time-boxed.
 
+Mission (decided Saturday Oct 24): tethered observation a few hundred feet up, held over one place for hours. One
+camera view serves beachgoers (rip-current and swimmer alerts written by Claude), drivers (live parking map with surge
+pricing) and markets (prediction markets and an analyst agent on car and foot-traffic counts). Docs:
+- `CONTEXT.md`: mission, prize plan, order of work, full software walkthrough
+- `docs/pitch.md`: why a balloon beats drones and satellites (with numbers and sources), demo storyline
+- `docs/tracks.md`: every Cal Hacks track, rules, deadlines, free credits, venue hardware
+- `docs/launch-plan.md`: helium, lift and tether
+
 Hardware we actually have (confirmed by the team):
 - Grove barometer/temperature (BMP280 family, I2C 0x76/0x77)
 - Grove 3-axis accelerometer (I2C; exact chip unknown until `i2cdetect` runs: 0x53 ADXL345, 0x19 LIS3DHTR, 0x4c MMA7660)
@@ -90,5 +98,8 @@ ssh tarun@balloon.local journalctl -fu balloon-telemetry
   Hardware access still not achieved: venue Wi-Fi isolates clients, Mac USB gadget / direct Ethernet links never
   answered unicast (suspect the Mac's "Untitled Bridge" virtual interface on the LAN adapter). Hotspot path untested
   because the hotspot was off while the Pi booted. Next person: get a monitor on the Pi or keep the hotspot on.
+- 2026-10-24 afternoon: pivot to tethered observation and prize plan recorded in `CONTEXT.md` section 5; full track
+  reference in `docs/tracks.md`. Repo checked end to end in sim mode (all routes, dashboard with no JS errors, driver
+  tests, shellcheck). Not built yet: detector, live map, market, agents, Claude alert writer.
 - Ideas not started: metre scale bar on the mosaic (footprint = 2*h*tan(FOV/2)), tilt-rectified stills,
   Claude-vision captions from snapshots (laptop side), ESP32 tether-length encoder, servo pan (code exists, off).
