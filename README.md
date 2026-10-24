@@ -25,6 +25,15 @@ Data layout on the SD card: `/data/balloon/sessions/<YYYYmmdd-HHMMSS>/`
 `telemetry.csv` (fixed schema, one row per sample), `markers.csv`, `sensors.json`,
 `video/*.mkv`, `stills/*.jpg` + `stills/index.csv`, `mosaic.jpg`. Everything is downloadable from the dashboard.
 
+## 0. Two ways to reach the Pi
+
+- **USB-C cable to the Mac** (development): run `tools/mac/enable-usb-gadget.sh` once with the SD card in a reader,
+  then the Pi's USB-C port is also an Ethernet link: `ssh tarun@balloon.local`. For internet on the Pi (apt during
+  setup) turn on macOS *System Settings > General > Sharing > Internet Sharing* from your uplink to "RNDIS/Ethernet Gadget".
+- **Phone hotspot** (flight/demo): the balloon is on a string, not a cable, so the dashboard reaches the ground over Wi-Fi.
+  Use a phone hotspot, not venue Wi-Fi (venue networks block device-to-device traffic). Over the USB link:
+  `sudo nmcli dev wifi connect "<hotspot ssid>" password "<password>"`.
+
 ## 1. Flash the Pi (once)
 
 1. `brew install --cask raspberry-pi-imager`, put the microSD in a reader.

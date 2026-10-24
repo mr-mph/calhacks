@@ -18,7 +18,8 @@ Hardware we actually have (confirmed by the team):
 We do NOT have light, UV, humidity, or SGP30 sensors. Drivers for them exist but must stay off by default.
 
 Pi: hostname `balloon`, user `tarun`, Raspberry Pi OS 64-bit (Bookworm or newer, NetworkManager, /boot/firmware).
-Never commit the Pi password or any credential. SSH uses keys (`ssh-copy-id tarun@balloon.local`).
+Development link is USB-C gadget networking (tools/mac/enable-usb-gadget.sh, then ssh over the cable);
+flight link is a phone hotspot (venue Wi-Fi blocks peer traffic). Never commit the Pi password or any credential. SSH uses keys (`ssh-copy-id tarun@balloon.local`).
 
 ## Architecture (all on the Pi, under /opt/balloon, one systemd unit each)
 
