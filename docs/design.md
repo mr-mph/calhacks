@@ -1,8 +1,8 @@
 # Overhead: design system
 
-Decided Saturday Oct 24. The product is named **Overhead**. Brand and live map follow Boris's style
-(borisnezlobin.com, gaspmd.com, siyi.app); the market page borrows Kalshi's mechanics in our palette, so it reads as
-one product. Dark is the default; light mode is supported. Every web surface (Convex map, Spacetime market, landing)
+Decided Saturday Oct 24. The product is named **Overhead**. Brand and live map use a warm editorial style (warm
+black, off-white, a serif display face, one coral accent); the market page borrows Kalshi's mechanics in our palette,
+so it reads as one product. Dark is the default; light mode is supported. Every web surface (Convex map, Spacetime market, landing)
 takes its tokens from here. The Jira app uses Atlassian's own UI Kit and is exempt.
 
 ## Color tokens
