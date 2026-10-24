@@ -12,6 +12,7 @@ import logging
 import math
 import os
 import queue
+import re
 import statistics
 import threading
 import time
@@ -30,6 +31,7 @@ COLUMNS = [
     "light_raw", "light_pct", "uv_mv", "uv_index", "aq_raw", "aq_level",
     "eco2_ppm", "tvoc_ppb",
     "cpu_temp_c", "wifi_rssi_dbm", "disk_free_gb", "load_1m",
+    "elevation_msl_m", "alt_since_launch_m",
 ]
 
 # I2C address -> list of driver factories to try (first that succeeds wins).
@@ -137,6 +139,8 @@ class Telemetry(threading.Thread):
         self._prev_alt = None
         self._prev_t = None
         self.rezero_requested = False
+        self.qnh = config.QNH_HPA          # sea-level pressure for elevation_msl_m
+        self.launch_alt = None             # altitude_m when a "launch" marker was recorded
         self.failures = collections.Counter()
         self.start_time = time.time()
         self.samples = 0
@@ -175,6 +179,9 @@ class Telemetry(threading.Thread):
                                         note.replace(",", ";").replace("\n", " ")))
         with self.lock:
             self.markers.append(row)
+            if re.search(r"launch|release|lift", note, re.I):
+                self.launch_alt = s.get("altitude_m") or 0.0
+                log.info("launch marked at %.2f m", self.launch_alt)
         self._broadcast({"type": "marker", "marker": row})
         return row
 
@@ -211,6 +218,7 @@ class Telemetry(threading.Thread):
                 "session": self.session, "session_dir": self.session_dir, "csv": self.csv_path,
                 "samples": self.samples, "uptime_s": round(time.time() - self.start_time, 1),
                 "p0_hpa": self.p0, "zeroed": self.p0 is not None, "sensors": self.info,
+                "qnh_hpa": self.qnh, "launch_alt_m": self.launch_alt,
                 "failures": dict(self.failures), "sample_hz": config.SAMPLE_HZ, "markers": self.markers[-50:],
             }
 
@@ -251,6 +259,9 @@ class Telemetry(threading.Thread):
                     v = (self.alt_ema - self._prev_alt) / (t_mono - self._prev_t)
                     row["vspeed_mps"] = round(v, 3)
                 self._prev_alt, self._prev_t = self.alt_ema, t_mono
+            row["elevation_msl_m"] = round(pressure_altitude(p, self.qnh), 1)
+            if self.launch_alt is not None and row.get("altitude_m") is not None:
+                row["alt_since_launch_m"] = round(row["altitude_m"] - self.launch_alt, 2)
         ax, ay, az = row.get("ax_g"), row.get("ay_g"), row.get("az_g")
         if ax is not None and ay is not None and az is not None:
             mag = math.sqrt(ax * ax + ay * ay + az * az)

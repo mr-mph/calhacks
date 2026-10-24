@@ -25,6 +25,9 @@ SAMPLE_HZ = _env("BALLOON_SAMPLE_HZ", 5.0, float)
 HISTORY_SECONDS = _env("BALLOON_HISTORY_SECONDS", 1800, int)   # in-memory ring buffer for charts
 ZERO_SAMPLES = _env("BALLOON_ZERO_SAMPLES", 25, int)          # samples averaged for ground pressure
 ALT_SMOOTHING = _env("BALLOON_ALT_SMOOTHING", 0.25, float)    # EMA alpha for displayed altitude
+# Sea-level pressure (QNH) for the estimated elevation above sea level. Check a local METAR/weather site
+# before a flight (SF is usually 1010-1020 hPa); can be changed live with POST /api/qnh {"qnh": 1016.2}.
+QNH_HPA = _env("BALLOON_QNH_HPA", 1013.25, float)
 
 # Network
 HTTP_PORT = _env("BALLOON_HTTP_PORT", 8080, int)

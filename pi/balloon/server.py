@@ -7,7 +7,8 @@ Runs the sampler thread (so logging continues even with no viewers) and serves:
   /api/history?seconds=600   recent samples (column-oriented for the charts)
   /api/status          session, detected sensors, failures
   /api/zero  (POST)    re-zero altitude at the current pressure
-  /api/mark  (POST)    {"note": "..."} add a timestamped marker
+  /api/mark  (POST)    {"note": "..."} add a timestamped marker ("launch" also sets the since-launch reference)
+  /api/qnh   (POST)    {"qnh": 1016.2} sea-level pressure for the estimated elevation
   /api/servo (POST)    {"angle": 0..180}  optional camera pan
   /api/sessions        list recorded sessions with sizes
   /data/<path>         download anything in the data directory (CSV, video, stills)
@@ -87,6 +88,20 @@ def api_status():
 def api_zero():
     telemetry.request_rezero()
     return jsonify({"ok": True})
+
+
+@app.route("/api/qnh", methods=["POST"])
+def api_qnh():
+    """Set sea-level pressure (hPa) used for the estimated elevation above sea level."""
+    data = request.get_json(silent=True) or {}
+    try:
+        q = float(data.get("qnh"))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "qnh (hPa) required"}), 400
+    if not 900 <= q <= 1100:
+        return jsonify({"ok": False, "error": "qnh out of range"}), 400
+    telemetry.qnh = q
+    return jsonify({"ok": True, "qnh": q})
 
 
 @app.route("/api/mark", methods=["POST"])

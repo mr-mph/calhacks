@@ -83,5 +83,9 @@ ssh tarun@balloon.local journalctl -fu balloon-telemetry
 - 2026-10-23: all software written and tested in simulation and against a synthetic camera; NOT yet run on the
   real Pi. First real-hardware run should: check `i2cdetect -y 1`, run `tools/test_sensor.py`, confirm ustreamer
   installed from apt, confirm ffmpeg records from the ustreamer stream, confirm the Grove ADC address (0x04 vs 0x08).
+- 2026-10-24: added elevation_msl_m (QNH-based) + alt_since_launch_m columns, /api/qnh, timelapse.sh, wifi-mode.sh (Pi as AP).
+  Hardware access still not achieved: venue Wi-Fi isolates clients, Mac USB gadget / direct Ethernet links never
+  answered unicast (suspect the Mac's "Untitled Bridge" virtual interface on the LAN adapter). Hotspot path untested
+  because the hotspot was off while the Pi booted. Next person: get a monitor on the Pi or keep the hotspot on.
 - Ideas not started: metre scale bar on the mosaic (footprint = 2*h*tan(FOV/2)), tilt-rectified stills,
   Claude-vision captions from snapshots (laptop side), ESP32 tether-length encoder, servo pan (code exists, off).
