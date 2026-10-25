@@ -31,6 +31,8 @@
   ];
   const TILES = [
     { f: "altitude_m", label: "Altitude (rel.)", unit: "m", dec: 1, hero: true },
+    { f: "det_cars", label: "Cars in view", unit: "", dec: 0 },
+    { f: "det_people", label: "People in view", unit: "", dec: 0 },
     { f: "alt_since_launch_m", label: "Since launch", unit: "m", dec: 1 },
     { f: "elevation_msl_m", label: "Elevation (est.)", unit: "m MSL", dec: 0 },
     { f: "vspeed_mps", label: "Climb rate", unit: "m/s", dec: 2 },
@@ -325,6 +327,38 @@
       if (t.extra) el.querySelector(".x").textContent = latest[t.extra] ? " " + latest[t.extra] : "";
     }
   }
+  // ---------- detections from the ground station (boxes over the video, counts as tiles) ----------
+  let detSeq = -1;
+  async function pollDetections() {
+    if (replay) return;
+    try {
+      const r = await fetch("/api/detections"); const d = await r.json();
+      const svg = $("#det-overlay"), badge = $("#det-badge");
+      if (!d.available) { svg.innerHTML = ""; badge.classList.add("hidden"); return; }
+      const stale = d.age_s > 15;
+      if (d.n !== detSeq) {
+        detSeq = d.n;
+        const W = d.width || 640, H = d.height || 480;
+        svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+        svg.innerHTML = (d.detections || []).map((b) => {
+          const [x1, y1, x2, y2] = b.xyxy || [0, 0, 0, 0];
+          const cls = b.cls === "car" || b.cls === "person" ? b.cls : "other";
+          return `<rect class="${cls}" x="${x1}" y="${y1}" width="${x2 - x1}" height="${y2 - y1}" rx="2"/>` +
+            `<text x="${x1 + 2}" y="${Math.max(10, y1 - 3)}">${b.cls}${b.conf ? " " + Math.round(b.conf * 100) + "%" : ""}</text>`;
+        }).join("");
+        const c = d.counts || {};
+        latest.det_cars = c.car ?? 0; latest.det_people = c.person ?? 0;
+        if (cols.t_unix) { // keep tiles in sync on next render
+          dirty = true;
+        }
+      }
+      badge.classList.remove("hidden");
+      badge.textContent = (stale ? "detector stale " : "") + "cars " + ((d.counts || {}).car ?? 0) + " · people " + ((d.counts || {}).person ?? 0) + (d.zones ? " · zones " + Object.keys(d.zones).length : "");
+      svg.style.opacity = stale ? 0.35 : 1;
+    } catch (e) { }
+  }
+  setInterval(pollDetections, 1000);
+
   // ---------- orientation (bubble level + side view) ----------
   function renderOrientation() {
     const ax = latest.ax_g, ay = latest.ay_g, az = latest.az_g, tilt = latest.tilt_deg;

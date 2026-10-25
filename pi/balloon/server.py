@@ -10,6 +10,7 @@ Runs the sampler thread (so logging continues even with no viewers) and serves:
   /api/mark  (POST)    {"note": "..."} add a timestamped marker ("launch" also sets the since-launch reference)
   /api/qnh   (POST)    {"qnh": 1016.2} sea-level pressure for the estimated elevation
   /api/level (POST)    take the current orientation as upright (tilt reference)
+  /api/detections (POST/GET) ground station posts YOLO detections per frame; dashboard overlays them on the video
   /api/elevation (POST) {"elevation_m": 5} calibrate the estimated elevation to the known ground elevation here
   /api/servo (POST)    {"angle": 0..180}  optional camera pan
   /api/sessions        list recorded sessions with sizes
@@ -132,6 +133,37 @@ def api_elevation():
     if q is None:
         return jsonify({"ok": False, "error": "no pressure reading yet"}), 503
     return jsonify({"ok": True, "qnh": q, "elevation_m": h})
+
+
+# Detections come from the ground station (laptop) which runs the YOLO model on our stills.
+_det = {"latest": None, "count": 0}
+
+
+@app.route("/api/detections", methods=["POST"])
+def api_detections_post():
+    """Ground station posts {"t_unix", "frame", "width", "height", "counts": {"car": n, "person": n},
+    "detections": [{"cls": "car", "conf": 0.8, "xyxy": [x1, y1, x2, y2]}], "zones": {...optional}}"""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"ok": False, "error": "json object required"}), 400
+    data["received_at"] = time.time()
+    data["detections"] = [d for d in (data.get("detections") or []) if isinstance(d, dict)][:300]
+    _det["latest"] = data
+    _det["count"] += 1
+    try:
+        with open(os.path.join(telemetry.session_dir, "detections.jsonl"), "a") as f:
+            f.write(json.dumps(data, separators=(",", ":")) + "\n")
+    except OSError:
+        pass
+    return jsonify({"ok": True, "n": _det["count"]})
+
+
+@app.route("/api/detections")
+def api_detections_get():
+    d = _det["latest"]
+    if not d:
+        return jsonify({"available": False})
+    return jsonify({"available": True, "age_s": round(time.time() - d["received_at"], 1), "n": _det["count"], **d})
 
 
 @app.route("/api/level", methods=["POST"])
