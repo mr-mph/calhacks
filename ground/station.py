@@ -26,6 +26,7 @@ from align import Aligner
 from observe import STABILITY_FRAMES, build_observation, load_site, resolve_reference
 import convex_sink
 import spacetime_sink
+from pi_sink import PiDashboardSink
 from sinks import JsonlSink, Sink
 
 log = logging.getLogger("station")
@@ -187,8 +188,9 @@ class Station:
 
     def __init__(self, detector, site: dict | None, aligner: Aligner | None, out_root: Path, session: str,
                  agents: Agents | None, cloud: list[Sink] | None = None,
-                 convex: convex_sink.ConvexSink | None = None):
+                 convex: convex_sink.ConvexSink | None = None, pi_sink: PiDashboardSink | None = None):
         self.detector = detector
+        self.pi_sink = pi_sink
         self.site = site
         self.aligner = aligner
         self.session = session
@@ -211,6 +213,8 @@ class Station:
                                 site=self.site, alignment=alignment, history=list(self.recent_counts))
         self.recent_counts.append(obs["counts"])
         self.history.append(obs)
+        if self.pi_sink:
+            self.pi_sink.post(obs, detections, image.shape)
         if self.convex:
             self.convex.upload_frame(still.jpeg, still.session, still.t, (image.shape[1], image.shape[0]),
                                      name=obs["frame"])
@@ -290,6 +294,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     ap.add_argument("--market-every", type=float, default=30.0, help="minutes between market proposals")
     ap.add_argument("--poll", type=float, default=2.0, help="live: seconds between polls")
     ap.add_argument("--align-mode", choices=("similarity", "homography"), default="similarity")
+    ap.add_argument("--pi-overlay", action=argparse.BooleanOptionalAction, default=True,
+                    help="live mode: post detections back to the Pi so its dashboard draws boxes on the video (default on)")
     ap.add_argument("--convex", action=argparse.BooleanOptionalAction, help="send to the Convex live map")
     ap.add_argument("--prod", action="store_true", help="Convex: the production deployment instead of dev")
     ap.add_argument("--convex-config", type=Path, default=convex_sink.CONFIG_PATH)
@@ -320,6 +326,9 @@ def main(argv: list[str]) -> None:
     log.info("detector %s on %s", detector.name, detector.device)
     convex = make_convex(args, site, reference) if args.convex else None
     cloud: list[Sink] = [s for s in (convex, make_spacetime(args) if args.spacetime else None) if s]
+    pi_sink = PiDashboardSink(args.pi) if (args.pi and args.pi_overlay) else None
+    if pi_sink:
+        log.info("pi dashboard overlay: posting detections to %s", pi_sink.url)
     station = None
     try:
         for still in still_source(args):
@@ -330,7 +339,7 @@ def main(argv: list[str]) -> None:
                 if agents:
                     log.info("agents: %s; alert voice: %s", agents.claude.mode,
                              agents.voice.label if agents.voice.available else "off (no XAI_API_KEY)")
-                station = Station(detector, site, aligner, args.out, still.session, agents, cloud, convex)
+                station = Station(detector, site, aligner, args.out, still.session, agents, cloud, convex, pi_sink)
             station.process(still)
     except KeyboardInterrupt:
         log.info("stopped")

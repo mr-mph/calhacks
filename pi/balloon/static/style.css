@@ -147,3 +147,11 @@ th { color: var(--muted); font-weight: 500; }
 .orient #rig { transition: transform .25s linear; transform-box: view-box; }
 .orient .lbl { font: 600 12px system-ui; fill: var(--ink); }
 .orient .tick { font: 10px system-ui; fill: var(--muted); }
+
+.det-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.det-overlay rect { fill: none; stroke-width: 2; }
+.det-overlay .car { stroke: #fab219; }
+.det-overlay .person { stroke: #1baf7a; }
+.det-overlay .other { stroke: #e87ba4; }
+.det-overlay text { font: 600 11px system-ui; fill: #fff; paint-order: stroke; stroke: rgba(0,0,0,.7); stroke-width: 3px; }
+.det-badge { position: absolute; left: 8px; bottom: 8px; background: rgba(0,0,0,.6); color: #fff; font: 600 12px system-ui; padding: 4px 8px; border-radius: 8px; pointer-events: none; }
