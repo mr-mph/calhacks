@@ -8,12 +8,16 @@ import { Button, Caption, StatTile } from "./ui";
 const COPIED_FOR_MS = 2000;
 const DASH = <span className="text-muted">–</span>;
 
-function duration(s: number): string {
+const SHORT_UNITS = { h: "h", min: "min", s: "s" };
+const LONG_UNITS = { h: "hours", min: "minutes", s: "seconds" };
+
+function duration(s: number, units = SHORT_UNITS): string {
   const total = Math.round(s);
-  if (total < 60) return `${total} s`;
+  if (total < 60) return `${total} ${units.s}`;
   const m = Math.floor(total / 60);
-  if (m < 60) return total % 60 ? `${m} min ${total % 60} s` : `${m} min`;
-  return m % 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${Math.floor(m / 60)} h`;
+  if (m < 60) return total % 60 ? `${m} ${units.min} ${total % 60} ${units.s}` : `${m} ${units.min}`;
+  const h = Math.floor(m / 60);
+  return m % 60 ? `${h} ${units.h} ${m % 60} ${units.min}` : `${h} ${units.h}`;
 }
 
 function count(n: number): string {
@@ -27,8 +31,8 @@ function plural(n: number, one: string, many: string): string {
 function confirmSentence(stats: Stats): string | null {
   if (stats.medianToConfirmS === null || stats.worstToConfirmS === null) return null;
   return (
-    `The median time from the camera frame to a patrol member's confirmation was ${duration(stats.medianToConfirmS)}, ` +
-    `and the slowest was ${duration(stats.worstToConfirmS)}.`
+    `The median time from the camera frame to a patrol member's confirmation was ` +
+    `${duration(stats.medianToConfirmS, LONG_UNITS)}, and the slowest was ${duration(stats.worstToConfirmS, LONG_UNITS)}.`
   );
 }
 
@@ -39,7 +43,8 @@ function devpostSummary(stats: Stats): string {
       `${count(stats.confirmed)} and dismissed ${count(stats.dismissed)}, and nothing went out without a person's confirmation.`,
     confirmSentence(stats),
     `The most people counted in the water with a rip current in view, in a single frame, was ${count(stats.peakNearRip)}.`,
-    `${plural(stats.jiraFiled, "confirmed alert was", "confirmed alerts were")} filed as incidents in the patrol's Jira.`,
+    `${plural(stats.jiraFiled, "confirmed alert was filed as an incident", "confirmed alerts were filed as incidents")} ` +
+      `in the patrol's Jira.`,
   ];
   return sentences.filter(Boolean).join(" ");
 }
@@ -96,7 +101,7 @@ function Tiles({ stats }: { stats: Stats }) {
       <div className="grid grid-cols-2 gap-2 @3xl:grid-cols-4">
         <StatTile
           label="Alerts drafted"
-          note={hasAlerts ? `${count(stats.confirmed)} confirmed, ${count(stats.dismissed)} dismissed` : "No alerts in the last 24 h"}
+          note={hasAlerts ? `${count(stats.confirmed)} confirmed, ${count(stats.dismissed)} dismissed` : "none in the last 24 h"}
         >
           {orDash(!hasAlerts, count(stats.drafted))}
         </StatTile>
@@ -108,13 +113,13 @@ function Tiles({ stats }: { stats: Stats }) {
         </StatTile>
         <StatTile
           label="In the water near a rip"
-          note={hasFrames ? `most in one frame, of ${count(stats.framesWatched)} watched` : "no frames watched yet"}
+          note={hasFrames ? `most in one frame, of ${count(stats.framesWatched)} watched` : "no frames yet"}
         >
           {orDash(!hasFrames, count(stats.peakNearRip))}
         </StatTile>
         <StatTile
           label="Jira incidents filed"
-          note={hasAlerts ? `from ${plural(stats.confirmed, "confirmed alert", "confirmed alerts")}` : "filed when patrol confirms"}
+          note={hasAlerts ? `from ${plural(stats.confirmed, "confirmed alert", "confirmed alerts")}` : "filed on confirm"}
         >
           {orDash(!hasAlerts, count(stats.jiraFiled))}
         </StatTile>
@@ -130,7 +135,7 @@ export function AlertStats() {
     <section aria-labelledby="alert-stats-heading" className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="alert-stats-heading" className="text-sm font-semibold text-muted">
-          Last 24 hours <Caption className="font-normal">to the newest frame</Caption>
+          Last 24 hours <Caption className="font-normal">ending at the newest frame</Caption>
         </h2>
         {stats.drafted > 0 && <CopyForDevpost stats={stats} />}
       </div>
