@@ -12,7 +12,8 @@ Our choices and the reasoning: `CONTEXT.md` section 5 and `docs/pitch.md`.
 | Devpost submission | **9:00 AM Sunday**, hard deadline. Submit a draft Saturday night and keep editing |
 | Table assignment | Shortly after 9 AM; be at the table by 10:30 AM |
 | Judging | 10:30 AM to 12:30 PM Sunday. **Every teammate must be at the table** or the team isn't judged |
-| Pitch | About 2 to 3 minutes plus questions, with a **live demo** (Devpost also asks for a demo video for sponsors judging async) |
+| Pitch | **3 minutes to pitch, 2 minutes of judge questions**, with a **live demo**. Devpost also asks for a clear demo video (sponsors judge async) |
+| Submission must include | An **image of the project** and the **GitHub repo**; code without a repo isn't considered |
 | Closing ceremony | 2:00 to 4:00 PM Sunday; winners' photos 4 to 5 PM |
 | Team size | 1 to 4. Add teammates on Devpost; nothing else needed |
 | Originality | All work must be started at the event |
