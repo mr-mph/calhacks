@@ -5,6 +5,7 @@ import { api } from "../../convex/_generated/api";
 import type { Alert } from "../lib/data";
 import { usePatrolCode, WRONG_PATROL_CODE } from "../lib/patrol";
 import { ago, clock, useNow } from "../lib/time";
+import { AlertStats } from "./AlertStats";
 import { PlayAlertButton, ReadAloudSwitch } from "./AlertVoice";
 import { JiraStatus } from "./JiraStatus";
 import { Button, Caption, Card, Chip, EmptyState, type Tone } from "./ui";
@@ -191,6 +192,7 @@ export function AlertsView() {
           a confirmed alert opens or updates an incident in the patrol's Jira.
         </p>
       </div>
+      <AlertStats />
       <ReadAloudSwitch />
       {showCodeForm && <PatrolCodeForm wasWrong={wasWrong} onSave={handleSaveCode} />}
       {alerts.open.length === 0 ? (
