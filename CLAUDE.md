@@ -12,6 +12,7 @@ over the USB-C cable. Weight budget is ~400 g total, power is a USB-C power bank
 Mission (decided Saturday Oct 24): tethered observation a few hundred feet up, held over one place for hours. One
 camera view serves beachgoers (rip-current and swimmer alerts written by Claude), drivers (live parking map with surge
 pricing) and markets (prediction markets and an analyst agent on car and foot-traffic counts). Docs:
+- `docs/status.md`: current status, what's live, blockers and owners (start here)
 - `CONTEXT.md`: mission, prize plan, order of work, full software walkthrough
 - `docs/pitch.md`: why a balloon beats drones and satellites (with numbers and sources), demo storyline
 - `docs/tracks.md`: every Cal Hacks track, rules, deadlines, free credits, venue hardware

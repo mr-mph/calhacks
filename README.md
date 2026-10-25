@@ -4,6 +4,7 @@ Contributors (people or AI agents): read **CLAUDE.md** first for architecture, c
 
 | Doc | What's in it |
 |---|---|
+| [docs/status.md](docs/status.md) | Current status: what's live, models, blockers and owners |
 | [CONTEXT.md](CONTEXT.md) | Mission, prize plan, order of work, full software walkthrough |
 | [docs/pitch.md](docs/pitch.md) | Why a balloon beats drones and satellites, with numbers and sources; demo storyline |
 | [docs/tracks.md](docs/tracks.md) | Every Cal Hacks track, rules, deadlines, free credits, venue hardware |
