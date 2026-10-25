@@ -70,6 +70,13 @@ Final run: 50 epochs, YOLO11n, 640 px, VisDrone2019-DET val (548 images, 38,759 
 Cars are the reliable class. People are only a few pixels tall from above, so person counts are approximate and the
 alerts say so. Inference: 5 ms per image on an M5 Pro (MPS).
 
+### Rip currents
+
+`train_rip.py` trains YOLO11n-OBB on RipAID (CC BY 4.0): 2,186 training images, validated on 289 images from two beach
+cameras held out of training (`clm_s_03`, `snb_s_02`), 40 epochs at 960 px. Weights: `runs/ripaid/weights/best.pt`.
+Validation: mAP50 0.32, mAP50-95 0.17, precision 0.49, recall 0.27 (66 rips). It finds about a quarter of real rips on
+unseen cameras and about half its flags are right, which is why every rip alert goes to a person to confirm.
+
 ## Detection
 
 ```bash

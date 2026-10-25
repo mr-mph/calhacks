@@ -1,6 +1,6 @@
 import cv2
 
-from infer import merge_class, to_detections
+from infer import default_rip_weights, merge_class, to_detections
 
 
 def test_visdrone_and_coco_names_merge():
@@ -21,3 +21,10 @@ def test_coco_model_finds_cars_in_a_real_drone_frame(detector, real_images):
     cars = [d for d in dets if d["cls"] == "car"]
     assert len(cars) >= 5
     assert all(set(d) == {"cls", "conf", "xyxy"} for d in dets)
+
+
+def test_rip_weights_env_overrides_and_empty_disables(monkeypatch):
+    monkeypatch.setenv("BALLOON_RIP_WEIGHTS", "custom-rip.pt")
+    assert default_rip_weights() == "custom-rip.pt"
+    monkeypatch.setenv("BALLOON_RIP_WEIGHTS", "")
+    assert default_rip_weights() is None

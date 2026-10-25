@@ -15,7 +15,7 @@ As of **Saturday Oct 24, 5:31 PM**. Devpost closes at **9:00 AM Sunday**. Update
 | Model | Data | Result |
 |---|---|---|
 | Cars and people (YOLO11n) | VisDrone2019-DET, 50 epochs | Done. mAP50 car 0.72, pedestrian 0.31 (`ground/README.md`) |
-| Rip currents (YOLO11n-OBB) | RipAID, 2 beach cameras held out | Training, epoch 27 of 40 (mAP50 0.27 so far), done around 6:10 PM |
+| Rip currents (YOLO11n-OBB) | RipAID, 2 beach cameras held out | Done. mAP50 0.32 on unseen cameras (precision 0.49, recall 0.27); the station runs it automatically |
 | Our own frames | Balloon flight | After the flight: auto-label, fix about 200 by hand, retrain |
 
 ## Code

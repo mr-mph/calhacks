@@ -19,7 +19,9 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements-station.txt   # detector stack + agents, one venv
 ```
 
-The first run downloads `yolo11n.pt` (COCO). Point `BALLOON_WEIGHTS` at the VisDrone weights once they exist.
+The detector uses `runs/visdrone/weights/best.pt` (cars, people) and `runs/ripaid/weights/best.pt` (rip currents) when
+they exist on this machine; otherwise it falls back to COCO `yolo11n.pt` with no rip detection. Weights are gitignored;
+copy them from the training Mac.
 
 ## Run
 
@@ -44,7 +46,7 @@ Live mode polls `/api/status` for the current session, reads `/data/sessions/<se
 | `--site PATH` | Site JSON. Without it you still get frame-wide counts, but no zones, spaces or prices |
 | `--agents` | Runs pricing, markets and beach alerts on each observation |
 | `--every N` | Replay: process every Nth still |
-| `--weights PATH` | YOLO weights (default `$BALLOON_WEIGHTS`, then `yolo11n.pt`) |
+| `--weights PATH` | YOLO weights (default `$BALLOON_WEIGHTS`, then the VisDrone weights, then `yolo11n.pt`) |
 | `--market-every MIN` | Minutes between market proposals (default 30; the first comes after 10 min of history) |
 | `--align-mode` | `similarity` (default, nadir camera) or `homography` (oblique views) |
 | `--out DIR` | Output root (default `ground/out`) |
@@ -208,7 +210,8 @@ The org has a small monthly budget, so:
 | `BALLOON_SPEND_CAP_USD` | `10` | Claude plus Grok voice spend cap per session |
 | `XAI_API_KEY` | none | xAI key for alert audio. If unset, read from the file in `BALLOON_ENV_FILE` |
 | `BALLOON_VOICE_ID` | `rex` | Grok voice (`GET https://api.x.ai/v1/tts/voices` lists them) |
-| `BALLOON_WEIGHTS` | `yolo11n.pt` | detector weights |
+| `BALLOON_WEIGHTS` | VisDrone `best.pt`, else `yolo11n.pt` | car and person detector weights |
+| `BALLOON_RIP_WEIGHTS` | RipAID `best.pt` if present | rip-current model; set to empty to turn rip detection off |
 | `BALLOON_MODEL_NAME` | weights file stem | `model` field in observations, e.g. `yolo11n-visdrone-v1` |
 | `BALLOON_IMGSZ` | `1280` | detector input size |
 

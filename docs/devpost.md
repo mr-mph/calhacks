@@ -46,7 +46,8 @@ A laptop ground station turns each frame into counts, and three groups use them:
 - **Detection:** YOLO11n fine-tuned on VisDrone2019 (real drone imagery, 6,471 training images) for cars and people,
   reaching mAP50 0.72 for cars and 0.31 for pedestrians on the held-out VisDrone set (people are only a few pixels
   tall from above, so we count them and never try to identify anyone). A separate oriented-box model is trained on RipAID (2,186 images,
-  CC BY 4.0), validated on two beach cameras it never saw in training. [Rip model mAP once trained.] [Then fine-tuned
+  CC BY 4.0), validated on two beach cameras it never saw in training: mAP50 0.32 (precision 0.49, recall 0.27), so a
+  person confirms every rip alert. [Then fine-tuned
   again on frames from our own flight.]
 - **Ground station:** aligns every frame to a reference map of the site (ORB features and RANSAC), so drawn parking
   spaces stay put as the balloon drifts, and scores each frame's confidence from alignment, tilt and count stability.
