@@ -10,6 +10,7 @@ Runs the sampler thread (so logging continues even with no viewers) and serves:
   /api/mark  (POST)    {"note": "..."} add a timestamped marker ("launch" also sets the since-launch reference)
   /api/qnh   (POST)    {"qnh": 1016.2} sea-level pressure for the estimated elevation
   /api/level (POST)    take the current orientation as upright (tilt reference)
+  /api/elevation (POST) {"elevation_m": 5} calibrate the estimated elevation to the known ground elevation here
   /api/servo (POST)    {"angle": 0..180}  optional camera pan
   /api/sessions        list recorded sessions with sizes
   /data/<path>         download anything in the data directory (CSV, video, stills)
@@ -106,6 +107,20 @@ def api_qnh():
         return jsonify({"ok": False, "error": "qnh out of range"}), 400
     telemetry.qnh = q
     return jsonify({"ok": True, "qnh": q})
+
+
+@app.route("/api/elevation", methods=["POST"])
+def api_elevation():
+    """{"elevation_m": 5} -> make the estimated elevation read this value here (sets QNH from the current pressure)."""
+    data = request.get_json(silent=True) or {}
+    try:
+        h = float(data.get("elevation_m"))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "elevation_m required"}), 400
+    q = telemetry.set_ground_elevation(h)
+    if q is None:
+        return jsonify({"ok": False, "error": "no pressure reading yet"}), 503
+    return jsonify({"ok": True, "qnh": q, "elevation_m": h})
 
 
 @app.route("/api/level", methods=["POST"])

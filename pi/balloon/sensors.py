@@ -182,6 +182,15 @@ class Telemetry(threading.Thread):
         except Exception:
             return None
 
+    def set_ground_elevation(self, elevation_m):
+        """Calibrate the sea-level pressure so the current spot reads elevation_m above sea level."""
+        p = self.latest().get("pressure_hpa")
+        if not p:
+            return None
+        self.qnh = round(p / (1.0 - elevation_m / 44330.0) ** 5.255, 2)
+        log.info("ground elevation set to %.1f m -> QNH %.2f hPa", elevation_m, self.qnh)
+        return self.qnh
+
     def set_level(self):
         """Take the current accelerometer vector as the 'upright' reference for tilt_deg."""
         s = self.latest()
