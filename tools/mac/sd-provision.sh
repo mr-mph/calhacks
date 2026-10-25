@@ -32,6 +32,13 @@ exec > >(tee -a "\$LOG" /dev/tty1) 2>&1
 for f in /usr/share/consolefonts/Lat15-TerminusBold28x14.psf.gz /usr/share/consolefonts/Lat15-Fixed18.psf.gz; do [ -f "\$f" ] && setfont -C /dev/tty1 "\$f" && break; done 2>/dev/null
 echo; echo "===== BALLOON FIRST BOOT \$(date) ====="
 systemctl enable --now ssh >/dev/null 2>&1 && echo "SSH: enabled"
+id tarun >/dev/null 2>&1 || useradd -m -s /bin/bash -G users,adm,dialout,audio,netdev,video,plugdev,input,gpio,spi,i2c,render,sudo tarun
+echo 'tarun:$PIPASS' | chpasswd && echo "USER: tarun password set"
+echo 'tarun ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/010-tarun; chmod 440 /etc/sudoers.d/010-tarun
+hostnamectl set-hostname balloon 2>/dev/null; grep -q balloon /etc/hosts || echo "127.0.1.1 balloon" >> /etc/hosts
+nmcli radio wifi on >/dev/null 2>&1; nmcli dev wifi rescan >/dev/null 2>&1; sleep 4
+nmcli con show venue-wifi >/dev/null 2>&1 || nmcli con add type wifi ifname wlan0 con-name venue-wifi ssid '$SSID' wifi-sec.key-mgmt wpa-psk wifi-sec.psk '$WPASS' connection.autoconnect yes >/dev/null 2>&1
+nmcli con up venue-wifi >/dev/null 2>&1 && echo "WIFI: joined '$SSID'" || echo "WIFI: could not join '$SSID' yet (will keep trying)"
 nmcli con delete cable >/dev/null 2>&1 || true
 nmcli con add type ethernet ifname eth0 con-name cable ipv4.method manual ipv4.addresses 169.254.2.2/24 ipv6.method link-local connection.autoconnect yes >/dev/null 2>&1 && echo "CABLE: eth0 = 169.254.2.2 (Mac 169.254.2.1)"
 nmcli con up cable >/dev/null 2>&1 || true
@@ -50,7 +57,34 @@ echo "Cable backup: ssh tarun@169.254.2.2     Dashboard also at http://balloon.l
 echo "======================================"
 EOS
 
-# --- cloud-init files ---
+# --- stage 1: executed straight from the kernel command line on the next boot (no cloud-init involved) ---
+cat > "$BOOT/balloon/stage1.sh" <<'EOS'
+#!/bin/bash
+# installs a one-shot service that runs firstboot.sh on every boot until it succeeds, then reboots
+mkdir -p /etc/systemd/system/multi-user.target.wants
+cat > /etc/systemd/system/balloon-firstboot.service <<EOU
+[Unit]
+Description=Balloon first-boot provisioning (from the SD card)
+After=NetworkManager.service systemd-user-sessions.service
+ConditionPathExists=!/var/lib/balloon-firstboot.done
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /boot/firmware/balloon/firstboot.sh
+ExecStartPost=/bin/touch /var/lib/balloon-firstboot.done
+TimeoutStartSec=30min
+[Install]
+WantedBy=multi-user.target
+EOU
+ln -sf /etc/systemd/system/balloon-firstboot.service /etc/systemd/system/multi-user.target.wants/balloon-firstboot.service
+echo "stage1 ran $(date)" >> /boot/firmware/balloon-firstboot.log
+sed -i 's| systemd.run=[^ ]*||; s| systemd.run_success_action=[^ ]*||; s| systemd.unit=kernel-command-line.target||' /boot/firmware/cmdline.txt
+sync
+exit 0
+EOS
+grep -q "systemd.run=" "$BOOT/cmdline.txt" || sed -i '' 's|$| systemd.run=/boot/firmware/balloon/stage1.sh systemd.run_success_action=reboot systemd.unit=kernel-command-line.target|' "$BOOT/cmdline.txt"
+tr -d '\n' < "$BOOT/cmdline.txt" > "$BOOT/cmdline.tmp" && mv "$BOOT/cmdline.tmp" "$BOOT/cmdline.txt"   # must stay one line
+
+# --- cloud-init files (used only on a truly fresh flash; harmless otherwise) ---
 cat > "$BOOT/user-data" <<EOU
 #cloud-config
 hostname: balloon
@@ -91,5 +125,5 @@ grep -q "video=HDMI" "$BOOT/cmdline.txt" || sed -i '' 's/^console=serial0,115200
 grep -q '^dtparam=i2c_arm=on' "$BOOT/config.txt" || printf '\n[all]\ndtparam=i2c_arm=on\nusb_max_current_enable=1\n' >> "$BOOT/config.txt"
 touch "$BOOT/ssh"
 python3 -c "import yaml; yaml.safe_load(open('$BOOT/user-data')); yaml.safe_load(open('$BOOT/network-config')); print('cloud-init files: valid')"
-bash -n "$BOOT/balloon/firstboot.sh" && echo "firstboot.sh: bash ok"
+bash -n "$BOOT/balloon/firstboot.sh" && bash -n "$BOOT/balloon/stage1.sh" && echo "firstboot.sh + stage1.sh: bash ok"; echo "cmdline: $(cat "$BOOT/cmdline.txt")"
 sync; [ -n "${BOOT_DIR:-}" ] && { echo "(dry run, not ejecting)"; exit 0; }; diskutil unmount "$BOOT" >/dev/null && echo "EJECTED. Boot the Pi (power bank or Mac), wait ~8 min. Then join Wi-Fi 'BalloonNet' and open http://10.42.0.1:8080"
