@@ -27,12 +27,19 @@ def merge_class(name: str) -> str | None:
     return CLASS_MAP.get(name.strip().lower())
 
 
+# BALLOON_ALL_CLASSES=1 keeps every class the model knows (COCO's 80, for fun / demos); counts still use car/person.
+ALL_CLASSES = os.environ.get("BALLOON_ALL_CLASSES", "0") in ("1", "true", "yes")
+
+
 def to_detections(names: dict[int, str], cls_ids, confs, boxes) -> list[dict]:
     detections = []
     for cls_id, conf, xyxy in zip(cls_ids, confs, boxes):
-        merged = merge_class(names[int(cls_id)])
+        raw = names[int(cls_id)]
+        merged = merge_class(raw)
         if merged is None:
-            continue
+            if not ALL_CLASSES:
+                continue
+            merged = raw.strip().lower()
         detections.append({"cls": merged, "conf": round(float(conf), 3),
                            "xyxy": [round(float(v), 1) for v in xyxy]})
     return detections
