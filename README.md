@@ -24,7 +24,9 @@ The Pi logs every sensor and the camera to its SD card no matter what, and serve
    cd ground && python3 -m venv .venv && .venv/bin/pip install -r requirements-station.txt   # once, needs internet
    ground/live.sh                      # BALLOON_ALL_CLASSES=1 ground/live.sh shows every COCO class
    ```
-4. Before launch, on the dashboard with the payload hanging still: **Level**, **Zero alt**, then **Mark** "launch".
+4. Optional, on a laptop with internet: `ground/narrate.sh` makes the balloon talk (Claude describes the view every
+   20 s, ElevenLabs voice, questions via the dashboard mic). Keys in `~/.config/balloon/secrets.env`.
+5. Before launch, on the dashboard with the payload hanging still: **Level**, **Zero alt**, then **Mark** "launch".
 
 Cloud pieces (Convex live map, Spacetime markets, Jira, Claude/Grok agents) are optional add-ons that the station
 switches on only when their credential files exist; see `ground/STATION.md` and `web/README.md`.

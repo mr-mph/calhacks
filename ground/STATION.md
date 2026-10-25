@@ -61,6 +61,21 @@ Live mode polls `/api/status` for the current session, reads `/data/sessions/<se
 | `--spacetime` / `--no-spacetime` | Send counts, new markets and settlements to Spacetime. On when `~/.config/balloon/spacetime.json` exists |
 | `--convex-config`, `--spacetime-config` | Other config files, for example a throwaway Spacetime database |
 
+## Narrator (Claude + ElevenLabs, laptop side)
+
+`ground/narrate.sh` looks through the Pi's camera every 20 s, has Claude (`claude-sonnet-5-5`) describe it in one or two
+spoken sentences with the live telemetry and detector counts as context, turns that into speech with ElevenLabs, and
+posts text + MP3 to the Pi (`POST /api/captions`). Every dashboard on BalloonNet shows the captions in the Narrator card
+and plays them when the viewer turns Voice on. Questions asked on the dashboard (mic or text) queue on the Pi
+(`/api/ask`); the narrator answers them the same way. Keys live in `~/.config/balloon/secrets.env`:
+
+```
+ANTHROPIC_API_KEY=...
+ELEVENLABS_API_KEY=...
+```
+Cost: roughly $0.4 per hour of captions at 20 s intervals (one 640x480 image + ~100 tokens per call) plus ElevenLabs
+characters. `--interval 60` for long overnight runs. The laptop needs internet for this; the Pi does not.
+
 ## Cloud
 
 Both cloud sinks queue and return at once, so a slow network never stalls the detector. If either backend is

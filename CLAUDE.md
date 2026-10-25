@@ -127,6 +127,9 @@ it does on BalloonNet.
   profiles, orientation, markers, replay of any session, QR code, Level / Zero alt / elevation / QNH endpoints.
 - Ground station runs on Seth's Mac (`ground/.venv`) against the live Pi; detections go to the Pi (`/api/detections`)
   and into the telemetry rows (`det_cars`, `det_people`). Cloud sinks off (no credentials on this Mac).
+- 2026-10-24 23:35: narrator live. `ground/narrator.py` (laptop) -> Claude Sonnet 5.5 captions + ElevenLabs MP3 ->
+  Pi `/api/captions`; spoken Q&A via `/api/ask` relay; dashboard Narrator card (Voice toggle, mic via Web Speech API).
+  Secrets only in `~/.config/balloon/secrets.env` on the laptop (never in git).
 - Open: the real flight and a recorded session (`./fetch.sh` afterwards; `analysis/plot_session.py`); copy trained
   weights to the station laptop; the live map's source changes on `main` (station command, Markets tab hidden) need a
   manual `npx vercel deploy --prod` from `web/` by the Vercel project owner (Vercel is not linked to GitHub); Devpost.
