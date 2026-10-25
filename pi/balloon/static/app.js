@@ -395,71 +395,88 @@
     if (mb) { const rr = Math.min(1, tilt / 45) * 7; mb.setAttribute("cx", (10 + rr * Math.cos(dir)).toFixed(1)); mb.setAttribute("cy", (10 - rr * Math.sin(dir)).toFixed(1)); }
   }
 
-  // ---------- narrator: captions from the laptop, spoken Q&A ----------
+  // ---------- talk to the balloon: chat with captions, voice in, spoken replies ----------
   let narSeq = 0, voiceOn = false, lastPlayedId = 0;
-  const narAudio = $("#nar-audio");
+  const narAudio = $("#nar-audio"), chat = $("#chat");
+  const pendingQ = {};                                  // question text -> local bubble (until the answer arrives)
   function speak(rec) {
     if (!voiceOn || !rec || !rec.audio_url || rec.id <= lastPlayedId) return;
     lastPlayedId = rec.id;
     narAudio.src = rec.audio_url; narAudio.play().catch(() => {});
   }
-  function narItem(c) {
-    const t = new Date(c.t_unix * 1000).toLocaleTimeString();
-    const play = c.audio_url ? `<button data-audio="${c.audio_url}">▶</button>` : "";
-    if (c.kind === "answer") return `<div class="nar-item"><time>${t}</time><span class="q">You: ${c.question || ""}</span><br><span class="a">${c.text}</span>${play}</div>`;
-    return `<div class="nar-item"><time>${t}</time>${c.text}${play}</div>`;
+  function addMsg(cls, text, opts) {
+    opts = opts || {};
+    const el = document.createElement("div");
+    el.className = "msg " + cls + (opts.pending ? " pending" : "");
+    const t = opts.t ? new Date(opts.t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+    el.innerHTML = `<div class="text"></div><div class="meta">${t ? `<span>${t}</span>` : ""}${opts.audio ? `<button data-audio="${opts.audio}">▶ play</button>` : ""}</div>`;
+    el.querySelector(".text").textContent = text;
+    const stick = chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 40;
+    chat.appendChild(el);
+    while (chat.children.length > 120) chat.removeChild(chat.firstChild);
+    if (stick) chat.scrollTop = chat.scrollHeight;
+    return el;
+  }
+  function renderCaption(c) {
+    if (c.kind === "answer") {
+      const q = c.question || "";
+      if (pendingQ[q]) { pendingQ[q].remove(); delete pendingQ[q]; } else addMsg("user", q, { t: c.t_unix });
+      addMsg("bot", c.text, { t: c.t_unix, audio: c.audio_url });
+    } else {
+      addMsg("caption", c.text, { t: c.t_unix, audio: c.audio_url });
+    }
   }
   async function pollCaptions() {
     if (replay) return;
     try {
       const r = await fetch("/api/captions?since=" + narSeq); const d = await r.json();
-      const card = $("#narrator-card");
-      if (!d.latest) { return; }
-      card.classList.remove("hidden");
-      if (d.items.length) {
-        narSeq = d.seq;
-        const log = $("#nar-log");
-        log.innerHTML = d.items.slice().reverse().map(narItem).join("") + log.innerHTML;
-        while (log.children.length > 60) log.removeChild(log.lastChild);
-        $("#nar-latest").textContent = d.latest.kind === "answer" ? d.latest.text : d.latest.text;
-        const newest = d.items[d.items.length - 1];
-        speak(newest);
-      }
-      $("#nar-latest").style.opacity = d.narrator_online ? 1 : 0.5;
+      if (d.items.length) { narSeq = d.seq; d.items.forEach(renderCaption); speak(d.items[d.items.length - 1]); }
+      $("#nar-status").textContent = d.narrator_online ? "narrator live · Claude watching the camera" :
+        (d.latest ? "narrator offline (last caption " + Math.round((Date.now() / 1000 - d.latest.t_unix) / 60) + " min ago) · run ground/start.sh on the laptop" : "narrator offline · run ground/start.sh on the laptop");
     } catch (e) { logOnce("captions", e); }
   }
   setInterval(pollCaptions, 1500);
-  $("#nar-log").addEventListener("click", (e) => { const b = e.target.closest("button[data-audio]"); if (b) { narAudio.src = b.dataset.audio; narAudio.play().catch(() => {}); } });
+  chat.addEventListener("click", (e) => { const b = e.target.closest("button[data-audio]"); if (b) { narAudio.src = b.dataset.audio; narAudio.play().catch(() => {}); } });
   $("#btn-voice").onclick = () => {
-    voiceOn = !voiceOn; $("#btn-voice").textContent = voiceOn ? "🔊 Voice on" : "🔈 Voice off"; $("#btn-voice").classList.toggle("ghost", !voiceOn);
-    if (voiceOn) { narAudio.muted = false; narAudio.play().catch(() => {}); }   // user gesture unlocks audio on phones
+    voiceOn = !voiceOn;
+    $("#btn-voice").textContent = voiceOn ? "🔊 Speaking" : "🔇 Muted";
+    $("#btn-voice").classList.toggle("voice-on", voiceOn); $("#btn-voice").classList.toggle("ghost", !voiceOn);
+    $("#btn-voice").setAttribute("aria-pressed", String(voiceOn));
+    if (voiceOn) { narAudio.muted = false; narAudio.play().catch(() => {}); }   // the tap unlocks audio on phones
   };
   async function ask(text) {
     text = (text || "").trim(); if (!text) return;
-    $("#nar-latest").textContent = "You: " + text + " …";
+    const bubble = addMsg("user", text, { t: Date.now() / 1000 });
+    pendingQ[text] = bubble;
+    const wait = addMsg("bot", "…", { pending: true });
     try {
       const r = await fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
       const d = await r.json(); if (!d.ok) throw new Error(d.error || "ask failed");
       const t0 = Date.now();
       const timer = setInterval(async () => {
-        if (Date.now() - t0 > 45000) { clearInterval(timer); $("#nar-latest").textContent = "No answer (is the laptop narrator running?)"; return; }
-        try { const s = await (await fetch("/api/ask/" + d.id)).json(); if (s.answer) { clearInterval(timer); } } catch (e) { }
+        try {
+          const s = await (await fetch("/api/ask/" + d.id)).json();
+          if (s.answer) { clearInterval(timer); wait.remove(); }          // the real answer arrives through pollCaptions
+          else if (Date.now() - t0 > 60000) { clearInterval(timer); wait.textContent = "No answer: the laptop narrator isn't running (ground/start.sh)."; wait.classList.remove("pending"); delete pendingQ[text]; }
+        } catch (e) { }
       }, 1000);
-    } catch (e) { $("#nar-latest").textContent = "Could not send: " + e.message; }
+    } catch (e) { wait.textContent = "Could not send: " + e.message; wait.classList.remove("pending"); }
   }
   $("#btn-ask").onclick = () => { ask($("#ask-text").value); $("#ask-text").value = ""; };
   $("#ask-text").addEventListener("keydown", (e) => { if (e.key === "Enter") { ask($("#ask-text").value); $("#ask-text").value = ""; } });
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let rec = null;
   $("#btn-mic").onclick = () => {
-    if (!SR) { $("#ask-text").focus(); $("#nar-latest").textContent = "Voice input isn't available in this browser; type instead."; return; }
+    if (!SR) { $("#ask-text").focus(); $("#nar-status").textContent = "Voice input isn't available in this browser here (needs HTTPS on most phones); type instead."; return; }
     if (rec) { rec.stop(); return; }
-    rec = new SR(); rec.lang = "en-US"; rec.interimResults = true; rec.continuous = false;
-    $("#btn-mic").textContent = "⏹ Listening…"; $("#btn-mic").classList.add("rec");
+    try { rec = new SR(); } catch (e) { $("#nar-status").textContent = "Mic unavailable: " + e.message; return; }
+    rec.lang = "en-US"; rec.interimResults = true; rec.continuous = false;
+    $("#btn-mic").textContent = "⏹"; $("#btn-mic").classList.add("rec"); $("#ask-text").placeholder = "Listening…";
     let finalText = "";
     rec.onresult = (e) => { let t = ""; for (const r of e.results) t += r[0].transcript; $("#ask-text").value = t; if (e.results[e.results.length - 1].isFinal) finalText = t; };
-    rec.onerror = (e) => { $("#nar-latest").textContent = "Mic error: " + e.error; };
-    rec.onend = () => { $("#btn-mic").textContent = "🎤 Ask"; $("#btn-mic").classList.remove("rec"); rec = null; const t = finalText || $("#ask-text").value; if (t.trim()) { ask(t); $("#ask-text").value = ""; } };
+    rec.onerror = (e) => { $("#nar-status").textContent = "Mic error: " + e.error + (e.error === "not-allowed" ? " (browser blocked the mic on a plain-http page; type instead)" : ""); };
+    rec.onend = () => { $("#btn-mic").textContent = "🎤"; $("#btn-mic").classList.remove("rec"); $("#ask-text").placeholder = "Ask what it sees, how high it is, anything…"; rec = null;
+      const t = finalText || $("#ask-text").value; if (t.trim()) { ask(t); $("#ask-text").value = ""; } };
     rec.start();
   };
 
