@@ -24,7 +24,8 @@ As of **Saturday Oct 24, 5:31 PM**. Devpost closes at **9:00 AM Sunday**. Update
 - Satellite comparison (`ground/satellite.py`): free satellite imagery is 9 days old at 10 m per pixel, or 4 years old
   at 0.6 m; the balloon sees about 7 cm per pixel every 2 s.
 - Docs: `CONTEXT.md` (plan), `docs/devpost.md` (submission draft), `docs/tracks.md` (every track's rules),
-  `docs/design.md` (design system), `docs/architecture.md` (data flow).
+  `docs/design.md` (design system), `docs/architecture.md` (data flow), `docs/demo.md` (Sunday runbook and
+  pitch).
 
 ## Tracks
 
