@@ -77,8 +77,8 @@ The dashboard has been verified in headless Chrome; any JS exception shows as a 
 # 1. laptop joins Wi-Fi "BalloonNet" (balloon123). Dashboard: http://10.42.0.1:8080 (video, sensors, charts, replay)
 # 2. detector on the laptop, boxes drawn on the Pi dashboard for every phone on BalloonNet:
 cd ground && python3 -m venv .venv && .venv/bin/pip install -r requirements-station.txt   # once
-ground/live.sh                                   # = station.py --pi http://10.42.0.1:8080 --no-convex --no-spacetime
-BALLOON_ALL_CLASSES=1 ground/live.sh             # demo mode: every COCO class, not just cars/people
+ground/start.sh                                  # detector + narrator together, auto-restart, Ctrl-C stops (the one command)
+ground/live.sh / ground/narrate.sh               # the two halves separately; CLASSES=carperson for cars/people only
 # 3. before launch, on the dashboard with the payload hanging still: Level, Zero alt, then Mark "launch" as it lifts
 ```
 Trained weights (`ground/runs/visdrone/weights/best.pt`, `ground/runs/ripaid/weights/best.pt`) are gitignored and live

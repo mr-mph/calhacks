@@ -19,14 +19,15 @@ The Pi logs every sensor and the camera to its SD card no matter what, and serve
 
 1. Power the Pi (power bank). Within a minute the Wi-Fi network **BalloonNet** appears (password `balloon123`).
 2. Join it. Dashboard: **http://10.42.0.1:8080**. SSH: `ssh tarun@10.42.0.1` (team password).
-3. Detector on a laptop on BalloonNet (boxes then show on the dashboard for everyone):
+3. Ground side, one command on a laptop that is on BalloonNet:
    ```bash
-   cd ground && python3 -m venv .venv && .venv/bin/pip install -r requirements-station.txt   # once, needs internet
-   ground/live.sh                      # BALLOON_ALL_CLASSES=1 ground/live.sh shows every COCO class
+   ground/start.sh
    ```
-4. Optional, on a laptop with internet: `ground/narrate.sh` makes the balloon talk (Claude describes the view every
-   20 s, ElevenLabs voice, questions via the dashboard mic). Keys in `~/.config/balloon/secrets.env`.
-5. Before launch, on the dashboard with the payload hanging still: **Level**, **Zero alt**, then **Mark** "launch".
+   It installs its Python environment on the first run (needs internet once), then runs the detector (boxes on the
+   dashboard video) and, if `~/.config/balloon/secrets.env` has the keys, the narrator (Claude describes the view every
+   20 s, ElevenLabs voice, questions via the dashboard). Ctrl-C stops both. Knobs: `CLASSES=carperson`, `INTERVAL=60`,
+   `NO_NARRATOR=1`, `NO_VOICE=1`.
+4. Before launch, on the dashboard with the payload hanging still: **Level**, **Zero alt**, then **Mark** "launch".
 
 Cloud pieces (Convex live map, Spacetime markets, Jira, Claude/Grok agents) are optional add-ons that the station
 switches on only when their credential files exist; see `ground/STATION.md` and `web/README.md`.
