@@ -92,4 +92,7 @@ ground/demo.sh ground/out/sessions/visdrone-standin-0000356
 - [ ] Al3x9 and the fourth teammate join: https://devpost.com/software/1507584/joins/dakgVAjv7NFD_R7siLQOOg
 - [ ] One sentence on how we used Cursor (SpaceXSI requires it)
 - [ ] Swap screenshots for real flight frames, set the thumbnail
+- [ ] Repo public, or judges given access (code without a repo isn't judged; `mr-mph/calhacks` is private)
+- [ ] Tick Microsoft: Built for the Real World (not ticked yet; track note is in `docs/devpost.md`)
+- [ ] No [brackets] left in the description (flight results, "What we learned")
 - [ ] Tick the rules box, click Submit (editing stays open until 9:00)

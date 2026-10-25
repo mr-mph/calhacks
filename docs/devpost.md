@@ -112,6 +112,11 @@ tailwind, atlassian-forge, jira, confluence, vercel, grok, xai, cursor
 - **Atlassian, track: Best Agent.** Balloon Patrol is an agent that does the patrol's triage in Jira (files, de-duplicates,
   assigns, escalates, writes the shift report), with the security layer built in: audit log, revert, and injection
   defense. Demo site one-atlas-dqcx.atlassian.net. (Devpost asks us to name the track in the description; keep this line.)
+- **Microsoft, Built for the Real World:** customers = the Ocean Beach surf patrol and a lot operator. Measurable
+  usefulness: seconds from frame to confirmed alert, alerts confirmed vs dismissed, every price change with its logged
+  reason. Path to production: runs with zero internet on a Pi + laptop, cloud parts switch on only when configured,
+  a per-session Claude spend cap. Responsible design: counts people and never identifies anyone, a human confirms every
+  alert, the agents act only inside hard limits, and every action is audited, revertible and injection-resistant.
 - **SpaceXAI:** we pulled the freshest free imagery of Ocean Beach and Marina Green from Microsoft Planetary
   Computer and put it next to the balloon's view. Sentinel-2 was 9 days old at 10 m per pixel, so a car is less than
   half a pixel; the sharpest free aerial photo (NAIP, 0.6 m) was from May 2022. The balloon sees about 7 cm per pixel,
