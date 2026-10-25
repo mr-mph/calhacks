@@ -23,6 +23,7 @@ Hardware we actually have (confirmed by the team):
 - Grove 3-axis accelerometer: **MMA7660** (±1.5 g) at I2C 0x4c (confirmed 2026-10-24)
 - Grove Air Quality Sensor v1.3 (analog, port A4, read through the Base Hat ADC at I2C 0x04)
 - Logitech USB webcam, 16 GB microSD
+- Grove 16x2 LCD (I2C 0x3e text, 0x62 or 0x30 RGB backlight): hot-pluggable, `balloon/lcd.py` shows altitude/temp/AQ
 - Possibly an MPU-6050 (I2C 0x68, accel + gyro) if someone attaches it
 We do NOT have light, UV, humidity, or SGP30 sensors. Drivers for them exist but must stay off by default.
 

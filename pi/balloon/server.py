@@ -40,6 +40,14 @@ app = Flask(__name__, static_folder=os.path.join(HERE, "static"), static_url_pat
 telemetry = Telemetry()
 telemetry.start()
 
+lcd = None
+if not config.SIM:
+    try:
+        from .lcd import start_lcd
+        lcd = start_lcd(telemetry, telemetry.info.get("i2c_addresses"))
+    except Exception as e:
+        log.warning("lcd disabled: %s", e)
+
 servo = None
 if config.SERVO_ENABLED:
     try:
@@ -79,6 +87,7 @@ def api_status():
     st = telemetry.status()
     st["camera_port"] = config.CAMERA_PORT
     st["servo"] = servo is not None
+    st["lcd"] = bool(lcd is not None and getattr(lcd, "updater", None) is not None)
     st["sim"] = config.SIM
     st["mosaic"] = os.path.exists(os.path.join(telemetry.session_dir, "mosaic.jpg"))
     try:
