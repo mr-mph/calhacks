@@ -1,4 +1,4 @@
-# Sauron Markets
+# Soar-on Markets
 
 Live at maincloud database **`overhead-market`** (`wss://maincloud.spacetimedb.com`).
 

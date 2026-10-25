@@ -1,4 +1,4 @@
-# Sauron: demo video script and recording plan
+# Soar-on: demo video script and recording plan
 
 Target length: under 3:00. Upload to YouTube as Unlisted, paste the link on Devpost.
 
@@ -6,7 +6,7 @@ Target length: under 3:00. Upload to YouTube as Unlisted, paste the link on Devp
 
 | Time | On screen | Voiceover |
 |---|---|---|
-| 0:00 to 0:10 | Balloon on the ground, then a slow zoom up to it as it lifts | "Hi, we're Sauron. You're probably wondering what that is. [zoom] It's our satellite. Except it's a few hundred feet up, not a few hundred miles, so it can see a single swimmer, and it stays over the same beach for hours." |
+| 0:00 to 0:10 | Balloon on the ground, then a slow zoom up to it as it lifts | "Hi, we're Soar-on. You're probably wondering what that is. [zoom] It's our satellite. Except it's a few hundred feet up, not a few hundred miles, so it can see a single swimmer, and it stays over the same beach for hours." |
 | 0:10 to 0:18 | Payload close-up (Pi, camera, power bank on the tether) | "Tonight it flies on a tether at [height we actually flew]. Physics lets the idea go much further: a solar stratospheric balloon with a long lens can hold over a whole city at 90,000 feet for weeks." |
 | 0:18 to 0:35 | Quick cuts: beach waves, the lot behind Ocean Beach, traffic | "Rip currents cause more than 80% of surf beach rescues. Ocean Beach has no lifeguard towers, drones are banned there, and satellite photos are days old. So nobody is watching when a rip forms." |
 | 0:35 to 0:45 | Swimmer interview clip, or a still of the beach with the quote as text | "We talked to swimmers right outside. They told us lifeguards are outnumbered, and that an alert within minutes of a rip forming would change everything." |

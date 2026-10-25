@@ -1,4 +1,4 @@
-# Devpost draft: Sauron
+# Devpost draft: Soar-on
 
 Paste section by section into Devpost. Anything in [brackets] needs a real fact from the team before submitting
 (flight results, the beachgoer conversation). Don't submit a bracket.
