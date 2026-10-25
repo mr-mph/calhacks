@@ -38,6 +38,10 @@ Live, against the Pi over the hotspot or USB-C, feeding the public map:
 .venv/bin/python station.py --pi http://balloon.local:8080 --site sites/marina.json --agents --prod
 ```
 
+Live mode also posts each frame's boxes and counts back to the Pi (`--pi-overlay`, on by default), so the Pi's own
+dashboard at http://10.42.0.1:8080 draws them over the live video and shows "Cars in view" / "People in view" tiles.
+Without cloud credentials on the laptop run `--no-convex --no-spacetime`; the JSONL output and the Pi overlay still work.
+
 Live mode polls `/api/status` for the current session, reads `/data/sessions/<session>/stills/index.csv` every
 2 s, and downloads only stills it hasn't seen. It starts at the newest still instead of working through the backlog.
 
