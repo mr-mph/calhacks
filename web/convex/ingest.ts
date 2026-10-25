@@ -9,6 +9,7 @@ import {
   siteFields,
 } from "./validators";
 import { requireEnvSecret } from "./secrets";
+import { recordWatch } from "./watch";
 
 const FRAMES_KEPT = 30;
 const MAX_BATCH = 200;
@@ -93,6 +94,7 @@ export const batch = mutation({
 
     if (args.frame) await insertFrame(ctx, args.frame);
     for (const o of args.observations ?? []) await ctx.db.insert("observations", o);
+    await recordWatch(ctx, args.observations ?? []);
     for (const p of args.prices ?? []) await ctx.db.insert("prices", p);
     for (const d of args.decisions ?? []) await insertDecision(ctx, d);
     for (const a of args.alerts ?? []) await insertAlert(ctx, a);
