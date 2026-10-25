@@ -56,6 +56,9 @@ Devpost judging criteria (Cal Hacks prizes): **Application** (who it helps, woul
   designed product built and running meaningfully on Claude that solves a specific community's problem in a way
   that's **tangible and measurable**, and "the narrower, the better". For us: Ocean Beach swimmers and patrol, and
   numbers we can show (alerts drafted, time from frame to confirmed alert, people counted near a rip).
+- Full Anthropic post (Friday, `#cohost-anthropic`): they want "a fully working product, not a concept", and it should
+  be **clear how you plan to measure its impact** on the community. Prize also includes an invite to visit Anthropic HQ.
+  Our measure: the Alerts page stats strip (alerts drafted, seconds from frame to confirmed alert, people near rips).
 - Saturday 8:18 PM: optional 2-minute "Claude Student Survey" form in `#cohost-anthropic`; about 20 random submitters get
   a printed copy of Anthropic safety research.
 
