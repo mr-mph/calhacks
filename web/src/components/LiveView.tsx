@@ -8,7 +8,7 @@ import { FrameView } from "./FrameView";
 import { LotCard } from "./LotCard";
 import { Caption, EmptyState } from "./ui";
 
-const START_STATION = "python ground/station.py --pi http://balloon.local:8080";
+const START_STATION = "cd ground && .venv/bin/python station.py --pi http://10.42.0.1:8080 --agents --prod";
 
 type Props = {
   openAlerts: number;

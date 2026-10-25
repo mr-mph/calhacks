@@ -5,9 +5,11 @@ import { MARKET_URL } from "../config";
 export type Tab = "live" | "alerts";
 
 // Markets is the other app (market/web); Live and Alerts are hash routes in this one.
+// Hidden for now (SHOW_MARKETS); flip to true to bring the tab back.
+const SHOW_MARKETS = false;
 const TABS: { id: Tab | "markets"; label: string; icon: typeof MapTrifold; href: string }[] = [
   { id: "live", label: "Live", icon: MapTrifold, href: "#/live" },
-  { id: "markets", label: "Markets", icon: ChartLine, href: MARKET_URL },
+  ...(SHOW_MARKETS ? [{ id: "markets" as const, label: "Markets", icon: ChartLine, href: MARKET_URL }] : []),
   { id: "alerts", label: "Alerts", icon: BellSimple, href: "#/alerts" },
 ];
 

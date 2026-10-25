@@ -5,8 +5,9 @@ import "./index.css";
 import App from "./App.tsx";
 import { CONVEX_URL, MARKET_URL } from "./config";
 
-// Markets live in their own app; old #/markets links go straight there.
-if (window.location.hash === "#/markets") window.location.replace(MARKET_URL);
+// Markets live in their own app and are hidden for now; old #/markets links land on Live.
+if (window.location.hash === "#/markets") window.location.hash = "#/live";
+void MARKET_URL;
 
 const convex = new ConvexReactClient(CONVEX_URL);
 
