@@ -27,6 +27,7 @@ from observe import STABILITY_FRAMES, build_observation, load_site, resolve_refe
 import convex_sink
 import spacetime_sink
 from pi_sink import PiDashboardSink
+from spin import SpinTracker
 from sinks import JsonlSink, Sink
 
 log = logging.getLogger("station")
@@ -191,6 +192,7 @@ class Station:
                  convex: convex_sink.ConvexSink | None = None, pi_sink: PiDashboardSink | None = None):
         self.detector = detector
         self.pi_sink = pi_sink
+        self.spin = SpinTracker() if pi_sink else None
         self.site = site
         self.aligner = aligner
         self.session = session
@@ -214,7 +216,8 @@ class Station:
         self.recent_counts.append(obs["counts"])
         self.history.append(obs)
         if self.pi_sink:
-            self.pi_sink.post(obs, detections, image.shape)
+            spin = self.spin.update(image) if self.spin else {}
+            self.pi_sink.post(obs, detections, image.shape, extra=spin)
         if self.convex:
             self.convex.upload_frame(still.jpeg, still.session, still.t, (image.shape[1], image.shape[0]),
                                      name=obs["frame"])

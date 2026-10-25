@@ -20,7 +20,7 @@ class PiDashboardSink:
         self.sent = 0
         threading.Thread(target=self._worker, daemon=True, name="pi-sink").start()
 
-    def post(self, obs: dict, detections: list[dict], shape) -> None:
+    def post(self, obs: dict, detections: list[dict], shape, extra: dict | None = None) -> None:
         payload = {
             "t_unix": obs.get("t"), "frame": obs.get("frame"),
             "width": int(shape[1]), "height": int(shape[0]),
@@ -28,6 +28,8 @@ class PiDashboardSink:
             "confidence": obs.get("confidence"), "aligned": obs.get("aligned"), "model": obs.get("model"),
             "detections": [{"cls": d["cls"], "conf": d.get("conf"), "xyxy": d["xyxy"]} for d in detections][:300],
         }
+        if extra:
+            payload.update(extra)
         try:
             self.q.put_nowait(payload)
         except queue.Full:            # keep only the newest frame

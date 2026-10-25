@@ -22,6 +22,13 @@ if [ -z "$DEV" ]; then
   exit 1   # systemd restarts us
 fi
 echo "camera device: $DEV ($RES @ ${FPS}fps) on port $PORT"
+# Camera controls (Logitech UVC): auto exposure with dynamic framerate lets the sensor expose longer in low light.
+# Override with BALLOON_CAM_CTRLS="ctrl=val,ctrl=val" in /etc/default/balloon ("" leaves the camera alone).
+CTRLS="${BALLOON_CAM_CTRLS-auto_exposure=3,exposure_dynamic_framerate=1,white_balance_automatic=1,backlight_compensation=1}"
+if command -v v4l2-ctl >/dev/null 2>&1 && [ -n "$CTRLS" ]; then
+  IFS=, ; for kv in $CTRLS; do v4l2-ctl -d "$DEV" -c "$kv" 2>/dev/null || true; done; unset IFS
+  echo "camera controls applied: $CTRLS"
+fi
 
 if command -v ustreamer >/dev/null 2>&1; then
   exec ustreamer --device "$DEV" --format MJPEG --resolution "$RES" --desired-fps "$FPS" \

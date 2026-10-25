@@ -27,6 +27,30 @@ fi
 [ -f ~/.config/balloon/secrets.env ] && set -a && . ~/.config/balloon/secrets.env && set +a
 
 pids=""
+
+# --- internet for the narrator: BalloonNet's gateway has no internet, so if the system default route goes through
+#     it, route the narrator's API calls through a local proxy bound to whichever interface does have internet.
+internet_via() { curl -s -m 5 --interface "$1" -o /dev/null -w "%{http_code}" https://api.anthropic.com/ 2>/dev/null | grep -qE "^[2-4]"; }
+if curl -s -m 5 -o /dev/null -w "%{http_code}" https://api.anthropic.com/ 2>/dev/null | grep -qE "^[2-4]"; then
+  echo "internet: ok on the default route"
+else
+  UPLINK=""
+  for i in $(ifconfig -l); do
+    case $i in lo0|utun*|awdl*|llw*|ap1|anpi*|gif*|stf*) continue;; esac
+    ifconfig "$i" 2>/dev/null | grep -q "inet " || continue
+    ifconfig "$i" 2>/dev/null | grep -q "inet 10\.42\." && continue
+    internet_via "$i" && UPLINK="$i" && break
+  done
+  if [ -n "$UPLINK" ]; then
+    DNSS=$(ipconfig getpacket "$UPLINK" 2>/dev/null | awk -F'[{}]' '/domain_name_server/{gsub(/ /,"",$2); print $2}' | head -1)
+    .venv/bin/python netproxy.py --iface "$UPLINK" --dns "${DNSS:-1.1.1.1},1.1.1.1" --port 3128 >> out/netproxy.log 2>&1 &
+    pids="$pids $!"; sleep 1
+    export HTTPS_PROXY=http://127.0.0.1:3128 HTTP_PROXY=http://127.0.0.1:3128 NO_PROXY="10.42.0.1,127.0.0.1,localhost,balloon.local"
+    echo "internet: default route has none; narrator will use the $UPLINK uplink through a local proxy"
+  else
+    echo "internet: NONE found on any interface; narrator will fail until the Mac has an uplink (Ethernet or other Wi-Fi)"
+  fi
+fi
 cleanup() { echo; bold "stopping…"; for p in $pids; do pkill -P "$p" 2>/dev/null; kill "$p" 2>/dev/null; done; pkill -f "station.py --pi $PI" 2>/dev/null; pkill -f "narrator.py --pi $PI" 2>/dev/null; wait 2>/dev/null; exit 0; }
 trap cleanup INT TERM
 

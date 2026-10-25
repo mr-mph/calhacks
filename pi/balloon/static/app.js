@@ -355,7 +355,15 @@
     }
   }
   // ---------- detections from the ground station (boxes over the video, counts as tiles) ----------
-  let detSeq = -1;
+  let detSeq = -1, heading = 0, stabilize = false;
+  try { stabilize = localStorage.getItem("stabilize") === "1"; } catch (e) { }
+  function applyStabilize() {
+    $("#view-live").classList.toggle("stabilized", stabilize);
+    $("#btn-stab").classList.toggle("on", stabilize);
+    $("#view-live").style.setProperty("--heading", (stabilize ? -heading : 0) + "deg");
+  }
+  $("#btn-stab").onclick = () => { stabilize = !stabilize; try { localStorage.setItem("stabilize", stabilize ? "1" : "0"); } catch (e) { } applyStabilize(); };
+  applyStabilize();
   async function pollDetections() {
     if (replay) return;
     try {
@@ -380,6 +388,11 @@
         const c = d.counts || {};
         detTiles = { det_cars: Number(c.car) || 0, det_people: Number(c.person) || 0 };
         dirty = true;
+      }
+      if (d.heading_deg != null) {                       // spin tracker heading drives the Stabilize view
+        heading = d.heading_deg; $("#heading-badge").classList.remove("hidden");
+        $("#heading-badge").textContent = "spin " + (heading >= 0 ? "+" : "") + heading.toFixed(0) + "°" + (d.spin_conf != null && d.spin_conf < 0.3 ? " (low conf)" : "");
+        if (stabilize) $("#view-live").style.setProperty("--heading", (-heading) + "deg");
       }
       badge.classList.remove("hidden");
       const parts = Object.entries(d.by_class || {}).slice(0, 6).map(([k, v]) => k + " " + v);

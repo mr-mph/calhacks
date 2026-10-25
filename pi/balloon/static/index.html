@@ -52,6 +52,7 @@
       <div class="tabs" role="tablist">
         <button class="tab active" data-view="live" role="tab">Live</button>
         <button class="tab" data-view="mosaic" role="tab">Map</button>
+        <button class="tab" id="btn-stab" title="Counter-rotate the video so the ground stays still while the payload spins (heading from the ground station)">Stabilize</button>
       </div>
       <div class="actions">
         <input id="mark-note" type="text" placeholder="note (optional)" aria-label="Marker note">
@@ -62,9 +63,12 @@
       </div>
     </div>
     <div class="view" id="view-live">
+      <div class="stab" id="stab">
       <img id="cam" alt="Live camera stream">
       <svg id="det-overlay" class="det-overlay" viewBox="0 0 640 480" preserveAspectRatio="xMidYMid meet" aria-label="Detections"></svg>
+      </div>
       <div class="det-badge hidden" id="det-badge"></div>
+      <div class="heading-badge hidden" id="heading-badge"></div>
       <div class="overlay" id="cam-overlay">camera offline</div>
     </div>
     <div class="view hidden" id="view-mosaic">
