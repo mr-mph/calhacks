@@ -44,7 +44,7 @@ As of **Saturday Oct 24, 5:31 PM**. Devpost closes at **9:00 AM Sunday**. Update
 | # | What | Owner |
 |---|---|---|
 | 1 | **Fly the Pi and record a session.** The Pi is live as of 10:15 PM Saturday (own Wi-Fi "BalloonNet", all four services, camera, DPS368 barometer, MMA7660 accelerometer, air quality, LCD). Still to do: fly it. Without a flight the demo runs on stand-in aerial footage | SF team |
-| 2 | **Create the Devpost project tonight**: name "Overhead", add all 4 teammates, tick Anthropic, Hyphenate, Convex, Spacetime, SpaceXAI, Atlassian, paste from `docs/devpost.md`, save as draft | Tarun |
+| 2 | **Finish the Devpost draft** ([edit](https://devpost.com/submit-to/29871-cal-hacks-13-0/manage/submissions/1262059-overhead/finalization)). Done: name, tagline, full description, 19 tags, repo link, 3 screenshots, AI-use answers, 11 prizes opted in (Cal Hacks prizes are opt-in too: Most Creative, Technically Complex, Hardware, People-First, Planet-First; plus Anthropic, Hyphenate, Convex, Spacetime, SpaceXSI, Atlassian). Missing: **demo video link** (required), every teammate's Hive email and school (required), the other two teammates joining via the invite link, then tick the rules box and Submit. Microsoft is not ticked; say if you want it | Tarun |
 | 3 | After the flight: draw the site's zones on the first frame (`ground/sites/editor.html`), fine-tune on our frames, fill the brackets in `docs/devpost.md` | Claude |
 | 4 | Demo video under 3 minutes, recorded after the flight | Team |
 | 5 | Use Cursor for the final polish (SpaceXAI requires it) | Tarun |

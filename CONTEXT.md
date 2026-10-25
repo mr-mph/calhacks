@@ -153,9 +153,9 @@ credits if we need more (QR code in `#spons-runpod`, or their booth).
 3. Detector: public datasets first, then our own frames.
 4. Live map (Convex), market (Spacetime), pricing and market agents (Hyphenate), alerts (Claude).
 5. SpaceXAI satellite comparison, then Atlassian or Microsoft if time is left.
-6. **REMINDER: Devpost is not created yet.** Create it Saturday night (Tarun): project "Overhead", add all 4
-   teammates, tick Anthropic, Hyphenate, Convex, Spacetime, SpaceXAI, Atlassian, paste from `docs/devpost.md`, save
-   as draft. Then the demo video (under 3 min) and repo link. Hard deadline 9:00 AM Sunday.
+6. **Devpost draft created** (Saturday 10:50 PM, project "Overhead", tyadgirkar and mr-mph on the team, 11 prizes
+   opted in). Still needed before 9:00 AM Sunday: the demo video link, every teammate's Hive email and school, the
+   other two teammates joining, then Tarun ticks the rules box and clicks Submit. Details in `docs/status.md`.
 
 ---
 
