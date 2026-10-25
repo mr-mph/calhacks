@@ -57,7 +57,16 @@ trap cleanup INT TERM
 # --- detector ---
 export BALLOON_ALL_CLASSES=$([ "${CLASSES:-all}" = "all" ] && echo 1 || echo 0)
 bold "detector: YOLO on the Pi's stills, boxes -> dashboard (classes: ${CLASSES:-all})"
-( while true; do PYTHONUNBUFFERED=1 .venv/bin/python station.py --pi "$PI" --no-convex --no-spacetime --poll 2 >> out/station-live.log 2>&1; sleep 5; done ) &
+# With the cloud configs present (overhead-handoff/install.sh), also feed the public map, markets, alerts and Jira.
+CLOUD_ARGS="--no-convex --no-spacetime"
+if [ "${NO_CLOUD:-0}" != "1" ] && [ -f ~/.config/balloon/convex.json ]; then
+  CLOUD_ARGS="--agents --prod"
+  echo "cloud: live map + markets + Claude agents ON (NO_CLOUD=1 to turn off)"
+else
+  echo "cloud: off (no ~/.config/balloon/convex.json or NO_CLOUD=1)"
+fi
+# shellcheck disable=SC2086
+( while true; do PYTHONUNBUFFERED=1 .venv/bin/python station.py --pi "$PI" $CLOUD_ARGS --poll 2 >> out/station-live.log 2>&1; sleep 5; done ) &
 pids="$pids $!"
 
 # --- narrator ---
