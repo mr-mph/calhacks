@@ -339,6 +339,9 @@
       const stale = d.age_s > 15;
       if (d.n !== detSeq) {
         detSeq = d.n;
+        latest.det_total = d.total != null ? d.total : (d.detections || []).length;
+        latest.det_classes = Object.entries(d.by_class || {}).map(([k, v]) => k + ":" + v).join(",");
+        dirty = true;
         const W = d.width || 640, H = d.height || 480;
         svg.setAttribute("viewBox", "0 0 " + W + " " + H);
         svg.innerHTML = (d.detections || []).map((b) => {
@@ -353,7 +356,8 @@
         dirty = true;
       }
       badge.classList.remove("hidden");
-      badge.textContent = (stale ? "detector stale " : "") + "cars " + (((d.counts || {}).car != null) ? (d.counts || {}).car : 0) + " · people " + (((d.counts || {}).person != null) ? (d.counts || {}).person : 0) + (d.zones ? " · zones " + Object.keys(d.zones).length : "");
+      const parts = Object.entries(d.by_class || {}).slice(0, 6).map(([k, v]) => k + " " + v);
+      badge.textContent = (stale ? "detector stale · " : "") + (parts.length ? parts.join(" · ") : "nothing detected") + (Object.keys(d.by_class || {}).length > 6 ? " · …" : "");
       svg.style.opacity = stale ? 0.35 : 1;
     } catch (e) { }
   }
