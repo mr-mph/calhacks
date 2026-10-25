@@ -34,6 +34,7 @@
   <span class="chip" id="rp-time">—</span>
   <span class="chip" id="rp-session">replay</span>
 </section>
+<section class="metricbar" id="metricbar" aria-label="Key readings"></section>
 <section class="tiles" id="tiles" aria-label="Latest readings"></section>
 
 <section class="flight" id="flight">
@@ -62,12 +63,6 @@
     <div class="view" id="view-live">
       <img id="cam" alt="Live camera stream">
       <svg id="det-overlay" class="det-overlay" viewBox="0 0 640 480" preserveAspectRatio="xMidYMid meet" aria-label="Detections"></svg>
-      <svg id="orient-mini" class="orient-mini hidden" viewBox="0 0 160 170" aria-label="Bubble level: dot shows tilt direction and amount">
-        <circle cx="80" cy="80" r="70" class="ring"/><circle cx="80" cy="80" r="46" class="ring faint"/><circle cx="80" cy="80" r="23" class="ring faint"/>
-        <line x1="10" y1="80" x2="150" y2="80" class="cross"/><line x1="80" y1="10" x2="80" y2="150" class="cross"/>
-        <circle id="bubble" cx="80" cy="80" r="9" class="bubble"/>
-        <text x="80" y="166" class="lbl" text-anchor="middle" id="orient-bubble-lbl">level</text>
-      </svg>
       <div class="det-badge hidden" id="det-badge"></div>
       <div class="overlay" id="cam-overlay">camera offline</div>
     </div>
@@ -79,6 +74,22 @@
       <label for="servo">Pan</label>
       <input id="servo" type="range" min="0" max="180" value="90">
       <span id="servo-val">90°</span>
+    </div>
+  </section>
+
+  <section class="card orient" id="orient-card">
+    <div class="card-head"><h2>Orientation</h2><span class="muted" id="orient-note">press Level once the payload hangs still</span></div>
+    <div class="orient-body">
+      <svg id="orient-bubble" viewBox="0 0 160 160" aria-label="Bubble level: dot shows tilt direction and amount">
+        <circle cx="80" cy="80" r="70" class="ring"/><circle cx="80" cy="80" r="46" class="ring faint"/><circle cx="80" cy="80" r="23" class="ring faint"/>
+        <line x1="10" y1="80" x2="150" y2="80" class="cross"/><line x1="80" y1="10" x2="80" y2="150" class="cross"/>
+        <circle id="bubble" cx="80" cy="80" r="9" class="bubble"/>
+      </svg>
+      <div class="orient-text">
+        <div class="big" id="orient-bubble-lbl">—</div>
+        <div class="muted" id="orient-sub">pitch — · roll —</div>
+        <button class="btn" id="btn-level2" title="Use the current orientation as upright">Level</button>
+      </div>
     </div>
   </section>
 

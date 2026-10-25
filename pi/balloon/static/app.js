@@ -15,7 +15,7 @@
     { id: "altitude", title: "Altitude (relative)", unit: "m", series: [{ f: "altitude_m", label: "altitude" }], markers: true, dec: 1 },
     { id: "since", title: "Altitude since launch", unit: "m", series: [{ f: "alt_since_launch_m", label: "Δ since launch" }], dec: 1 },
     { id: "vspeed", title: "Vertical speed", unit: "m/s", series: [{ f: "vspeed_mps", label: "v" }], dec: 2 },
-    { id: "det", title: "Detections in view (YOLO)", unit: "", series: [{ f: "det_cars", label: "cars" }, { f: "det_people", label: "people" }], dec: 0 },
+    { id: "det", title: "Detections in view (YOLO, all classes)", unit: "", series: [{ f: "det_total", label: "objects" }], dec: 0 },
     { id: "pressure", title: "Pressure", unit: "hPa", series: [{ f: "pressure_hpa", label: "pressure" }], dec: 2 },
     { id: "temp", title: "Temperature", unit: "°C", series: [{ f: "temp_c", label: "temp" }], dec: 2 },
     { id: "humidity", title: "Humidity", unit: "%", series: [{ f: "humidity_pct", label: "RH" }], dec: 1 },
@@ -32,8 +32,7 @@
   ];
   const TILES = [
     { f: "altitude_m", label: "Altitude (rel.)", unit: "m", dec: 1, hero: true },
-    { f: "det_cars", label: "Cars in view", unit: "", dec: 0 },
-    { f: "det_people", label: "People in view", unit: "", dec: 0 },
+    { f: "det_total", label: "Detections (YOLO)", unit: "", dec: 0, extra: "det_classes" },
     { f: "alt_since_launch_m", label: "Since launch", unit: "m", dec: 1 },
     { f: "elevation_msl_m", label: "Elevation (est.)", unit: "m MSL", dec: 0 },
     { f: "vspeed_mps", label: "Climb rate", unit: "m/s", dec: 2 },
@@ -326,7 +325,7 @@
       }
       el.classList.remove("hidden");
       el.querySelector(".v").textContent = fmt(v, t.dec);
-      if (t.extra) el.querySelector(".x").textContent = latest[t.extra] ? " " + latest[t.extra] : "";
+      if (t.extra) el.querySelector(".x").textContent = latest[t.extra] ? " " + String(latest[t.extra]).replace(/:/g, " ").replace(/,/g, " · ") : "";
     }
   }
   // ---------- detections from the ground station (boxes over the video, counts as tiles) ----------
@@ -363,7 +362,7 @@
   // ---------- orientation (bubble level + side view) ----------
   function renderOrientation() {
     const ax = latest.ax_g, ay = latest.ay_g, az = latest.az_g, tilt = latest.tilt_deg;
-    const card = $("#orient-mini");
+    const card = $("#orient-card");
     if (ax == null || tilt == null) { card.classList.add("hidden"); return; }
     card.classList.remove("hidden");
     // direction of lean in the sensor's horizontal plane; magnitude = tilt relative to the Level reference
@@ -374,8 +373,44 @@
     const r = Math.min(1, tilt / 45) * 70;                     // 45° reaches the outer ring
     $("#bubble").setAttribute("cx", (80 + r * Math.cos(dir)).toFixed(1));
     $("#bubble").setAttribute("cy", (80 - r * Math.sin(dir)).toFixed(1));
-    $("#orient-bubble-lbl").textContent = tilt < 1.5 ? "level" : tilt.toFixed(1) + "° lean";
-    $("#orient-mini").title = status.leveled ? "tilt relative to the Level reference" : "press Level once the payload hangs still";
+    $("#orient-bubble-lbl").textContent = tilt < 1.5 ? "level" : tilt.toFixed(1) + "°";
+    $("#orient-sub").textContent = "pitch " + fmt(latest.pitch_deg, 0) + "° · roll " + fmt(latest.roll_deg, 0) + "°";
+    $("#orient-note").textContent = status.leveled ? "relative to the Level reference" : "press Level once the payload hangs still";
+    // mini bubble inside the mobile metric bar
+    const mb = $("#mchip-tilt-bubble");
+    if (mb) { const rr = Math.min(1, tilt / 45) * 7; mb.setAttribute("cx", (10 + rr * Math.cos(dir)).toFixed(1)); mb.setAttribute("cy", (10 - rr * Math.sin(dir)).toFixed(1)); }
+  }
+
+  // ---------- mobile metric bar: main readings first, colour-coded ----------
+  const METRICS = [
+    { f: "elevation_msl_m", label: "elev", unit: "m", dec: 0, color: "--s1" },
+    { f: "pressure_hpa", label: "hPa", unit: "", dec: 1, color: "--s2" },
+    { f: "temp_c", label: "temp", unit: "°", dec: 1, color: "--s3" },
+    { f: "tilt_deg", label: "tilt", unit: "°", dec: 0, color: "--s3", bubble: true, warn: (v) => v > 25 ? "warn" : "" },
+    { f: "aq_raw", label: "air", unit: "", dec: 0, color: "--s2", warn: (v) => v > 700 ? "bad" : (v > 300 ? "warn" : "") },
+    { f: "altitude_m", label: "alt", unit: "m", dec: 1, color: "--s1" },
+    { f: "vspeed_mps", label: "climb", unit: "m/s", dec: 2, color: "--s1" },
+    { f: "det_total", label: "yolo", unit: "", dec: 0, color: "--s2" },
+    { f: "cpu_temp_c", label: "cpu", unit: "°", dec: 0, color: "--s3", warn: (v) => v > 75 ? "bad" : "" },
+  ];
+  function renderMetricBar() {
+    const bar = $("#metricbar");
+    if (!bar || getComputedStyle(bar).display === "none") return;
+    for (const m of METRICS) {
+      const v = latest[m.f];
+      let el = document.getElementById("mchip-" + m.f);
+      if (v == null) { if (el) el.classList.add("hidden"); continue; }
+      if (!el) {
+        el = document.createElement("div"); el.id = "mchip-" + m.f; el.className = "mchip";
+        el.innerHTML = (m.bubble
+          ? `<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" class="ring"/><circle id="mchip-tilt-bubble" cx="10" cy="10" r="3" class="bubble"/></svg>`
+          : `<span class="d" style="background:var(${m.color})"></span>`) + `<span class="l">${m.label}</span><span class="v"></span>`;
+        bar.appendChild(el);
+      }
+      el.classList.remove("hidden");
+      el.querySelector(".v").textContent = fmt(v, m.dec) + (m.unit ? " " + m.unit : "");
+      el.className = "mchip " + (m.warn ? m.warn(v) : "");
+    }
   }
 
   let peakAlt = null;
@@ -429,7 +464,7 @@
     }
     if (dirty) {
       dirty = false;
-      redraw(); renderTiles(); renderChips(); renderFlight(); renderOrientation(); renderProfiles(false);
+      redraw(); renderTiles(); renderMetricBar(); renderChips(); renderFlight(); renderOrientation(); renderProfiles(false);
       if ($("#values-table").closest("details").open) renderTable();
     }
   }
@@ -502,6 +537,7 @@
   };
   $("#btn-zero").onclick = () => { if (!replay) fetch("/api/zero", { method: "POST" }); };
   $("#btn-level").onclick = () => { if (!replay) fetch("/api/level", { method: "POST" }); };
+  $("#btn-level2").onclick = () => { if (!replay) fetch("/api/level", { method: "POST" }); };
   const servo = $("#servo");
   let servoTimer = null;
   servo.oninput = () => { $("#servo-val").textContent = servo.value + "°"; clearTimeout(servoTimer);

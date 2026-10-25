@@ -32,7 +32,7 @@ COLUMNS = [
     "eco2_ppm", "tvoc_ppb",
     "cpu_temp_c", "wifi_rssi_dbm", "disk_free_gb", "load_1m",
     "elevation_msl_m", "alt_since_launch_m",
-    "det_cars", "det_people", "det_age_s",
+    "det_cars", "det_people", "det_age_s", "det_total", "det_classes",
 ]
 
 # I2C address -> list of driver factories to try (first that succeeds wins).
@@ -347,6 +347,8 @@ class Telemetry(threading.Thread):
                         row['det_cars'] = ext.get('det_cars')
                         row['det_people'] = ext.get('det_people')
                         row['det_age_s'] = round(age, 1)
+                row['det_total'] = ext.get('det_total')
+                row['det_classes'] = ext.get('det_classes')
             except Exception as e:  # a bad reference (QNH, level) must never stop logging
                 self.failures["derive"] += 1
                 if self.failures["derive"] in (1, 5, 50, 500):

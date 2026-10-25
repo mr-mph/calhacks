@@ -151,8 +151,15 @@ def api_detections_post():
     data["detections"] = [d for d in (data.get("detections") or []) if isinstance(d, dict)][:300]
     _det["latest"] = data
     _det["count"] += 1
+    by_class = {}
+    for d in data["detections"]:
+        k = str(d.get("cls", "?"))
+        by_class[k] = by_class.get(k, 0) + 1
+    data["by_class"] = dict(sorted(by_class.items(), key=lambda kv: (-kv[1], kv[0])))
+    data["total"] = len(data["detections"])
     c = data.get("counts") or {}
-    telemetry.external = {"det_cars": c.get("car"), "det_people": c.get("person"), "received_at": data["received_at"]}
+    telemetry.external = {"det_total": data["total"], "det_classes": ",".join("%s:%d" % kv for kv in data["by_class"].items()),
+                          "det_cars": c.get("car"), "det_people": c.get("person"), "received_at": data["received_at"]}
     try:
         with open(os.path.join(telemetry.session_dir, "detections.jsonl"), "a") as f:
             f.write(json.dumps(data, separators=(",", ":")) + "\n")
