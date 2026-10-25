@@ -1,11 +1,13 @@
 # Project status
 
-As of **Saturday Oct 24, 5:31 PM**. Devpost closes at **9:00 AM Sunday**. Update this file when something changes.
+As of **Saturday Oct 24, 11:00 PM**. Devpost closes at **9:00 AM Sunday**. Update this file when something changes.
 
 ## Live now
 
 | What | Where | State |
 |---|---|---|
+| **The Pi** | Wi-Fi "BalloonNet" (balloon123) -> http://10.42.0.1:8080 | **Live on real hardware since 10:15 PM.** Video, barometer (DPS368), accelerometer (MMA7660), air quality, all services, recording to SD, preflight GO. Works with zero internet |
+| Ground station (local) | `ground/live.sh` on a laptop on BalloonNet | Runs YOLO on the stills and draws boxes on the Pi dashboard; stock COCO weights on Seth's Mac, trained weights still only on the training Mac |
 | Live map | https://overhead-live.vercel.app | Aerial frame with parking spaces, counts, lot prices with the "why" log, beach alerts with a patrol passcode, one-tap Jira hand-off, Grok reads alerts aloud. Convex prod: `agreeable-penguin-576` |
 | Prediction markets | https://overhead-market.vercel.app | Kalshi-style markets on Spacetime maincloud (`overhead-market`). Money provably balances. Markets open once the balloon is counting |
 | Jira "Balloon Patrol" | https://one-atlas-dqcx.atlassian.net | Forge app in Jira and Confluence: creates incidents, merges duplicates, queues low-confidence frames, flags injection attempts. 4-alert smoke test passes |

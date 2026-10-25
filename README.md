@@ -13,7 +13,21 @@ Contributors (people or AI agents): read **CLAUDE.md** first for architecture, c
 
 Tethered helium-balloon payload on a Raspberry Pi 4 + Grove Base Hat + Logitech USB webcam.
 The Pi logs every sensor and the camera to its SD card no matter what, and serves a live dashboard
-(video + real-time charts) to any phone or laptop on the same Wi-Fi (or over the USB-C cable).
+(video + real-time charts + detector boxes) to any phone or laptop on **its own Wi-Fi network "BalloonNet"**.
+
+## Quick start (everything local, no cloud account needed)
+
+1. Power the Pi (power bank). Within a minute the Wi-Fi network **BalloonNet** appears (password `balloon123`).
+2. Join it. Dashboard: **http://10.42.0.1:8080**. SSH: `ssh tarun@10.42.0.1` (team password).
+3. Detector on a laptop on BalloonNet (boxes then show on the dashboard for everyone):
+   ```bash
+   cd ground && python3 -m venv .venv && .venv/bin/pip install -r requirements-station.txt   # once, needs internet
+   ground/live.sh                      # BALLOON_ALL_CLASSES=1 ground/live.sh shows every COCO class
+   ```
+4. Before launch, on the dashboard with the payload hanging still: **Level**, **Zero alt**, then **Mark** "launch".
+
+Cloud pieces (Convex live map, Spacetime markets, Jira, Claude/Grok agents) are optional add-ons that the station
+switches on only when their credential files exist; see `ground/STATION.md` and `web/README.md`.
 
 ```
 pi/                      everything that runs on the Pi (deployed to /opt/balloon)

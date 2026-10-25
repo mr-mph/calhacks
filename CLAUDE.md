@@ -27,9 +27,15 @@ Hardware we actually have (confirmed by the team):
 - Possibly an MPU-6050 (I2C 0x68, accel + gyro) if someone attaches it
 We do NOT have light, UV, humidity, or SGP30 sensors. Drivers for them exist but must stay off by default.
 
-Pi: hostname `balloon`, user `tarun`, Raspberry Pi OS 64-bit (Bookworm or newer, NetworkManager, /boot/firmware).
-Development link is USB-C gadget networking (tools/mac/enable-usb-gadget.sh, then ssh over the cable);
-flight link is a phone hotspot (venue Wi-Fi blocks peer traffic). Never commit the Pi password or any credential. SSH uses keys (`ssh-copy-id tarun@balloon.local`).
+Pi: hostname `balloon`, user `tarun` (password login, shared by the team; never commit it), Raspberry Pi OS Lite 64-bit
+(Trixie, NetworkManager, /boot/firmware). **The Pi is its own Wi-Fi network "BalloonNet"** (password `balloon123`,
+Pi = 10.42.0.1). Join it and everything is there: dashboard http://10.42.0.1:8080, `ssh tarun@10.42.0.1`. Venue Wi-Fi
+and venue wired both isolate clients, so BalloonNet is the only link that works at Cal Hacks. For internet on the Pi
+(apt) plug its Ethernet into a venue wall jack (DHCP profile `venue-eth`); BalloonNet clients then get internet through
+the Pi too. Provisioning a fresh card is one command: `tools/mac/sd-provision.sh` (see "Deploy / operate").
+
+**Cloud is optional.** The whole demo runs with no internet: Pi dashboard + a laptop running the station. Convex (live
+map), Spacetime (markets) and Jira only switch on when their credential files exist on the station laptop.
 
 ## Architecture (all on the Pi, under /opt/balloon, one systemd unit each)
 
@@ -65,14 +71,36 @@ python3 -m balloon.camera_fallback --device some_video.mp4 --port 8081         #
 Needs: flask, numpy (dashboard), opencv-python-headless (camera fallback / mapper), matplotlib (analysis). No smbus2 on the Mac.
 The dashboard has been verified in headless Chrome; any JS exception shows as a red banner at the top of the page.
 
+## Run the whole thing locally (no cloud needed)
+
+```bash
+# 1. laptop joins Wi-Fi "BalloonNet" (balloon123). Dashboard: http://10.42.0.1:8080 (video, sensors, charts, replay)
+# 2. detector on the laptop, boxes drawn on the Pi dashboard for every phone on BalloonNet:
+cd ground && python3 -m venv .venv && .venv/bin/pip install -r requirements-station.txt   # once
+ground/live.sh                                   # = station.py --pi http://10.42.0.1:8080 --no-convex --no-spacetime
+BALLOON_ALL_CLASSES=1 ground/live.sh             # demo mode: every COCO class, not just cars/people
+# 3. before launch, on the dashboard with the payload hanging still: Level, Zero alt, then Mark "launch" as it lifts
+```
+Trained weights (`ground/runs/visdrone/weights/best.pt`, `ground/runs/ripaid/weights/best.pt`) are gitignored and live
+on the training Mac; without them the station uses the stock `yolo11n.pt` (COCO).
+
 ## Deploy / operate
 
 ```bash
-./deploy.sh tarun@balloon.local --setup        # first time (apt, I2C, units); add --usb-gadget for USB-C networking
-./deploy.sh tarun@balloon.local                # later: rsync + restart
-ssh tarun@balloon.local /opt/balloon/tools/preflight.sh
-ssh tarun@balloon.local journalctl -fu balloon-telemetry
+# fresh card (Pi OS Lite 64-bit from the Imager, no customisation needed), card in the Mac's reader:
+./tools/mac/sd-provision.sh "<wifi ssid for internet>" "<wifi password>" "<pi password>" [BalloonNet password]
+#   first boot (unattended, ~8 min): user, SSH, I2C, cable address 169.254.2.2, copies pi/ to /opt/balloon, apt, services,
+#   then switches Wi-Fi to the BalloonNet access point. Log: balloon-firstboot.log on the card.
+# code changes later (open one password ssh session with ControlMaster, then rsync through it):
+ssh -o ControlMaster=yes -o ControlPersist=8h -o ControlPath=~/.ssh/cm-balloon tarun@10.42.0.1      # separate terminal
+rsync -az --delete --exclude __pycache__ -e "ssh -o ControlPath=~/.ssh/cm-balloon" pi/ tarun@10.42.0.1:/opt/balloon/
+ssh -o ControlPath=~/.ssh/cm-balloon tarun@10.42.0.1 'sudo systemctl restart balloon-telemetry'
+ssh -o ControlPath=~/.ssh/cm-balloon tarun@10.42.0.1 /opt/balloon/tools/preflight.sh                 # GO / NO-GO
+ssh -o ControlPath=~/.ssh/cm-balloon tarun@10.42.0.1 'sudo tools/wifi-mode.sh client'                # back to normal Wi-Fi
 ```
+Other SD-card helpers in `tools/mac/` (enable-usb-gadget, sd-add-wifi, sd-no-keyboard, sd-static-links) are from the
+debugging trail and mostly superseded by sd-provision.sh. `deploy.sh`/`flash.sh` assume `balloon.local` resolves, which
+it does on BalloonNet.
 
 ## Conventions (please keep)
 
@@ -90,36 +118,18 @@ ssh tarun@balloon.local journalctl -fu balloon-telemetry
 
 ## State and open items (update this section as you go)
 
-- 2026-10-23: all software written and tested in simulation and against a synthetic camera; NOT yet run on the
-  real Pi. First real-hardware run should: check `i2cdetect -y 1`, run `tools/test_sensor.py`, confirm ustreamer
-  installed from apt, confirm ffmpeg records from the ustreamer stream, confirm the Grove ADC address (0x04 vs 0x08).
-- 2026-10-23: `flash.sh` writes Pi OS Lite 64-bit headless (hostname, user, SSH key, Wi-Fi via cloud-init).
-  `wifi-watchdog.sh` fixed: it matched "disconnected" as connected, so it never fired. Helium and lift numbers
-  are in `docs/launch-plan.md`. Why a balloon, what we infer, and sponsor-track fit: `docs/pitch.md`.
-- 2026-10-24: added elevation_msl_m (QNH-based) + alt_since_launch_m columns, /api/qnh, timelapse.sh, wifi-mode.sh (Pi as AP).
-  Hardware access still not achieved: venue Wi-Fi isolates clients, Mac USB gadget / direct Ethernet links never
-  answered unicast (suspect the Mac's "Untitled Bridge" virtual interface on the LAN adapter). Hotspot path untested
-  because the hotspot was off while the Pi booted. Next person: get a monitor on the Pi or keep the hotspot on.
-- 2026-10-24 afternoon: pivot to tethered observation and prize plan recorded in `CONTEXT.md` section 5; full track
-  reference in `docs/tracks.md`. Repo checked end to end in sim mode (all routes, dashboard with no JS errors, driver
-  tests, shellcheck). Not built yet: detector, live map, market, agents, Claude alert writer.
-- 2026-10-24 evening (branch `integration`): station sends to Convex (`--prod` for the public map) and Spacetime
-  markets; `ground/demo.sh <session>` replays a session through everything (see `ground/STATION.md`). Live map
-  https://overhead-live.vercel.app, markets https://overhead-market.vercel.app. Alert review needs the patrol code
-  (`patrol_code` in ~/.config/balloon/convex.json on the station laptop).
-- 2026-10-24 evening: Jira app "Balloon Patrol" (`atlassian/`) deployed and installed on
-  one-atlas-dqcx.atlassian.net (Jira + Confluence); smoke test: create, dedupe, low-confidence queue, injection flagged.
-  Station credentials in ~/.config/balloon/forge.json. Still open: the real Pi flight (hardware in SF), rip-current
-  model training (queued after VisDrone). **Devpost project not created yet** (do it Saturday night; text in `docs/devpost.md`).
-- 2026-10-24 22:15 (SF): **Pi 4 is live.** Reached via its own AP "BalloonNet" (password balloon123, Pi = 10.42.0.1),
-  provisioned with `tools/mac/sd-provision.sh`; the Pi's Ethernet port on a venue wall jack gives it internet.
-  All four services run; camera streams with HW encoder; detected DPS368 barometer (new driver `drivers/dps310.py`),
-  MMA7660 accelerometer (mounted on its side: press **Level** on the dashboard once it hangs), Base Hat ADC + air quality.
-  QNH set to 1017 hPa from the KSFO METAR. Venue Wi-Fi *and* venue wired isolate clients: use BalloonNet.
-- 2026-10-24 22:45: ground station runs on Seth's Mac (`ground/.venv`, stock yolo11n weights; copy
-  `runs/visdrone/weights/best.pt` + `runs/ripaid/weights/best.pt` from the training Mac for the real models) against
-  the live Pi: `cd ground && .venv/bin/python station.py --pi http://10.42.0.1:8080 --no-convex --no-spacetime`.
-  Detections are posted to the Pi (`POST /api/detections`) and drawn on the dashboard video. Grove LCD RGB is a 5 V
-  part: lights up but shows no text from the Base Hat's 3.3 V ports (driver stays, harmless).
+- **2026-10-24 23:00: the Pi flies as built.** Pi 4 provisioned with `tools/mac/sd-provision.sh`, running as the
+  BalloonNet access point; all four services up; preflight GO. Hardware confirmed: DPS368 barometer (driver
+  `drivers/dps310.py`), MMA7660 accelerometer (sideways: press Level), Air Quality v1.3 on A4 via the Base Hat ADC,
+  Logitech webcam at 15 fps (ustreamer HW encode). QNH calibrated so the Palace of Fine Arts reads 5 m MSL
+  (`POST /api/elevation`). Grove LCD RGB lights but shows no text at the hat's 3.3 V (5 V part); driver left in.
+- Dashboard features: live video with detector boxes + tilt bubble, tiles, 15 charts incl. YOLO counts, vertical
+  profiles, orientation, markers, replay of any session, QR code, Level / Zero alt / elevation / QNH endpoints.
+- Ground station runs on Seth's Mac (`ground/.venv`) against the live Pi; detections go to the Pi (`/api/detections`)
+  and into the telemetry rows (`det_cars`, `det_people`). Cloud sinks off (no credentials on this Mac).
+- Open: the real flight and a recorded session (`./fetch.sh` afterwards; `analysis/plot_session.py`); copy trained
+  weights to the station laptop; the live map's source changes on `main` (station command, Markets tab hidden) need a
+  manual `npx vercel deploy --prod` from `web/` by the Vercel project owner (Vercel is not linked to GitHub); Devpost.
+- Earlier history (networking saga, cloud work, models) is in git log and `docs/status.md`.
 - Ideas not started: metre scale bar on the mosaic (footprint = 2*h*tan(FOV/2)), tilt-rectified stills,
   Claude-vision captions from snapshots (laptop side), ESP32 tether-length encoder, servo pan (code exists, off).
