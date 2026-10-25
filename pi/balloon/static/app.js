@@ -67,6 +67,7 @@
   let markers = [];
   let lastSampleAt = 0;
   let dirty = false;
+  let detTiles = {};      // car/people counts posted by the ground station (kept apart from SSE samples)
   let status = {};
   let replay = null;      // {t0, t1, t, speed, playing, stills:[{t,file}]}
 
@@ -315,7 +316,7 @@
     const box = $("#tiles");
     for (const t of TILES) {
       let el = document.getElementById("tile-" + t.f);
-      const v = latest[t.f];
+      const v = t.f in detTiles ? detTiles[t.f] : latest[t.f];
       if (v === undefined || v === null) { if (el) el.classList.add("hidden"); continue; }
       if (!el) {
         el = document.createElement("div"); el.id = "tile-" + t.f; el.className = "tile" + (t.hero ? " hero" : "");
@@ -334,23 +335,22 @@
     try {
       const r = await fetch("/api/detections"); const d = await r.json();
       const svg = $("#det-overlay"), badge = $("#det-badge");
-      if (!d.available) { svg.innerHTML = ""; badge.classList.add("hidden"); return; }
+      if (!d.available) { svg.innerHTML = ""; badge.classList.add("hidden"); detTiles = {}; return; }
       const stale = d.age_s > 15;
       if (d.n !== detSeq) {
         detSeq = d.n;
         const W = d.width || 640, H = d.height || 480;
         svg.setAttribute("viewBox", "0 0 " + W + " " + H);
         svg.innerHTML = (d.detections || []).map((b) => {
-          const [x1, y1, x2, y2] = b.xyxy || [0, 0, 0, 0];
+          const [x1, y1, x2, y2] = (Array.isArray(b.xyxy) ? b.xyxy : [0, 0, 0, 0]).map((v) => Number(v) || 0);
           const cls = b.cls === "car" || b.cls === "person" ? b.cls : "other";
-          return `<rect class="${cls}" x="${x1}" y="${y1}" width="${x2 - x1}" height="${y2 - y1}" rx="2"/>` +
-            `<text x="${x1 + 2}" y="${Math.max(10, y1 - 3)}">${b.cls}${b.conf ? " " + Math.round(b.conf * 100) + "%" : ""}</text>`;
+          const label = /^[\w-]{1,24}$/.test(b.cls) ? b.cls : "?", conf = Number(b.conf);
+          return `<rect class="${cls}" x="${x1}" y="${y1}" width="${Math.max(0, x2 - x1)}" height="${Math.max(0, y2 - y1)}" rx="2"/>` +
+            `<text x="${x1 + 2}" y="${Math.max(10, y1 - 3)}">${label}${conf ? " " + Math.round(conf * 100) + "%" : ""}</text>`;
         }).join("");
         const c = d.counts || {};
-        latest.det_cars = c.car ?? 0; latest.det_people = c.person ?? 0;
-        if (cols.t_unix) { // keep tiles in sync on next render
-          dirty = true;
-        }
+        detTiles = { det_cars: Number(c.car) || 0, det_people: Number(c.person) || 0 };
+        dirty = true;
       }
       badge.classList.remove("hidden");
       badge.textContent = (stale ? "detector stale " : "") + "cars " + ((d.counts || {}).car ?? 0) + " · people " + ((d.counts || {}).person ?? 0) + (d.zones ? " · zones " + Object.keys(d.zones).length : "");

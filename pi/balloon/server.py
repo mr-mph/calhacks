@@ -38,6 +38,7 @@ log = logging.getLogger("server")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, static_folder=os.path.join(HERE, "static"), static_url_path="/static")
+app.config["MAX_CONTENT_LENGTH"] = 1 << 20   # POST bodies are small JSON; /api/detections is open to anyone on the AP
 telemetry = Telemetry()
 telemetry.start()
 
