@@ -184,6 +184,7 @@ html, body { overflow-x: hidden; max-width: 100vw; }
   .top { padding: 8px 12px; gap: 6px 10px; }
   .top h1 { font-size: 15px; }
   .top .chips > .chip { display: none; }
+  .top .chips { gap: 4px; }
   .top .btn.ghost { padding: 4px 8px; }
   /* key readings: a wrapping 3-column grid of compact cells, no horizontal scrolling */
   .tiles { display: none; }

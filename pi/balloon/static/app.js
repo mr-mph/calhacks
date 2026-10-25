@@ -82,6 +82,17 @@
   let replay = null;      // {t0, t1, t, speed, playing, stills:[{t,file}]}
 
   const $ = (s) => document.querySelector(s);
+  // ---------- units (metric by default; imperial converts at render time, data stays metric) ----------
+  let imperial = false;
+  try { imperial = localStorage.getItem("units") === "imperial"; } catch (e) { }
+  const IMPERIAL = {   // field -> [factor, offset, unit, decimals]
+    altitude_m: [3.28084, 0, "ft", 0], altitude_raw_m: [3.28084, 0, "ft", 0], alt_since_launch_m: [3.28084, 0, "ft", 0],
+    elevation_msl_m: [3.28084, 0, "ft MSL", 0], vspeed_mps: [196.8504, 0, "ft/min", 0],
+    temp_c: [1.8, 32, "°F", 1], cpu_temp_c: [1.8, 32, "°F", 0], pressure_hpa: [0.0295300, 0, "inHg", 2],
+  };
+  const conv = (f, v) => (imperial && IMPERIAL[f] && v != null) ? v * IMPERIAL[f][0] + IMPERIAL[f][1] : v;
+  const unitOf = (f, u) => (imperial && IMPERIAL[f]) ? IMPERIAL[f][2] : u;
+  const decOf = (f, d) => (imperial && IMPERIAL[f]) ? IMPERIAL[f][3] : d;
   const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const palette = () => [css("--s1"), css("--s2"), css("--s3")];
   const fmt = (v, dec) => (v === null || v === undefined || Number.isNaN(v)) ? "—" : Number(v).toFixed(dec);
@@ -138,7 +149,10 @@
     let start = 0;
     while (start < end && t[start] < cutoff) start++;
     const out = [t.slice(start, end)];
-    for (const f of fields) out.push((cols[f] || new Array(t.length).fill(null)).slice(start, end));
+    for (const f of fields) {
+      const a = (cols[f] || new Array(t.length).fill(null)).slice(start, end);
+      out.push(imperial && IMPERIAL[f] ? a.map((v) => conv(f, v)) : a);
+    }
     return out;
   }
 
@@ -157,7 +171,7 @@
           const pal = palette();
           def.series.forEach((s, i) => {
             const v = u.data[i + 1][idx];
-            html += `<div class="row"><span class="sw" style="background:${pal[i % pal.length]}"></span>${s.label}: <b>${fmt(v, def.dec)}</b> ${def.unit}</div>`;
+            html += `<div class="row"><span class="sw" style="background:${pal[i % pal.length]}"></span>${s.label}: <b>${fmt(v, decOf(s.f, def.dec))}</b> ${unitOf(s.f, def.unit)}</div>`;
           });
           tooltip.innerHTML = html;
           tooltip.classList.remove("hidden");
@@ -196,7 +210,8 @@
   function makeChart(def) {
     const el = document.createElement("div");
     el.className = "chart";
-    el.innerHTML = `<div class="chart-head"><span class="chart-title">${def.title}${def.unit ? " · " + def.unit : ""}</span><span class="chart-now" id="now-${def.id}">—</span></div><div class="plot"></div>`;
+    const cu = unitOf(def.series[0].f, def.unit), cdec = decOf(def.series[0].f, def.dec);
+    el.innerHTML = `<div class="chart-head"><span class="chart-title">${def.title}${cu ? " · " + cu : ""}</span><span class="chart-now" id="now-${def.id}">—</span></div><div class="plot"></div>`;
     $("#charts").appendChild(el);
     const pal = palette();
     const opts = {
@@ -208,7 +223,7 @@
         { stroke: css("--muted"), grid: { stroke: css("--grid"), width: 1 }, ticks: { stroke: css("--axis"), width: 1 }, font: "11px system-ui", space: 70,
           values: [[1, "{HH}:{mm}:{ss}", null, null, null, null, null, null, 1]] },
         { stroke: css("--muted"), grid: { stroke: css("--grid"), width: 1 }, ticks: { show: false }, font: "11px system-ui", size: 52,
-          values: (u, vals) => vals.map((v) => fmt(v, def.dec)) },
+          values: (u, vals) => vals.map((v) => fmt(v, cdec)) },
       ],
       series: [{ label: "time" }].concat(def.series.map((s, i) => ({ label: s.label, stroke: pal[i % pal.length], width: 2, spanGaps: true, points: { show: false } }))),
       plugins: [tooltipPlugin(def)].concat(def.markers ? [markersPlugin()] : []),
@@ -232,8 +247,8 @@
     for (const id of Object.keys(charts)) {
       const c = charts[id];
       c.u.setData(windowData(c.def.series.map((s) => s.f)));
-      const v = latest[c.def.series[0].f];
-      $("#now-" + id).textContent = fmt(v, c.def.dec) + (c.def.unit ? " " + c.def.unit : "");
+      const f0 = c.def.series[0].f, v = conv(f0, latest[f0]), uu = unitOf(f0, c.def.unit);
+      $("#now-" + id).textContent = fmt(v, decOf(f0, c.def.dec)) + (uu ? " " + uu : "");
     }
   }
   addEventListener("resize", () => {
@@ -280,13 +295,13 @@
     for (let i = 0; i <= yTicks; i++) {
       const a = range[0] + (range[1] - range[0]) * i / yTicks, y = Math.round(Y(a)) + 0.5;
       ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(W - R, y); ctx.stroke();
-      ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillText(a.toFixed(0) + " m", L - 4, y);
+      ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillText(fmt(conv("altitude_m", a), 0) + " " + unitOf("altitude_m", "m"), L - 4, y);
     }
     const xTicks = 4;
     for (let i = 0; i <= xTicks; i++) {
       const v = vmin + (vmax - vmin) * i / xTicks, x = Math.round(X(v)) + 0.5;
       ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, H - B); ctx.stroke();
-      ctx.textAlign = i === 0 ? "left" : (i === xTicks ? "right" : "center"); ctx.textBaseline = "top"; ctx.fillText(fmt(v, p.dec), x, H - B + 4);
+      ctx.textAlign = i === 0 ? "left" : (i === xTicks ? "right" : "center"); ctx.textBaseline = "top"; ctx.fillText(fmt(conv(p.f, v), decOf(p.f, p.dec)), x, H - B + 4);
     }
     const c1 = css("--s1");
     ctx.globalAlpha = 0.18; ctx.fillStyle = c1;
@@ -298,7 +313,7 @@
     ctx.stroke();
     const cur = latest[p.f], ca = latest.altitude_m;
     if (cur != null && ca != null) { ctx.fillStyle = css("--s2"); ctx.beginPath(); ctx.arc(X(cur), Y(ca), 4, 0, 6.283); ctx.fill(); }
-    p.now.textContent = fmt(cur, p.dec) + (p.unit ? " " + p.unit : "");
+    p.now.textContent = fmt(conv(p.f, cur), decOf(p.f, p.dec)) + (unitOf(p.f, p.unit) ? " " + unitOf(p.f, p.unit) : "");
   }
   function renderProfiles(force) {
     const now = Date.now();
@@ -334,7 +349,8 @@
         box.appendChild(el);
       }
       el.classList.remove("hidden");
-      el.querySelector(".v").textContent = fmt(v, t.dec);
+      el.querySelector(".v").textContent = fmt(conv(t.f, v), decOf(t.f, t.dec));
+      el.querySelector(".value small").textContent = unitOf(t.f, t.unit);
       if (t.extra) el.querySelector(".x").textContent = latest[t.extra] ? " " + String(latest[t.extra]).replace(/:/g, " ").replace(/,/g, " · ") : "";
     }
   }
@@ -507,7 +523,8 @@
         bar.appendChild(el);
       }
       el.classList.remove("hidden");
-      el.querySelector(".v").textContent = fmt(v, m.dec) + (m.unit ? " " + m.unit : "");
+      const uu = unitOf(m.f, m.unit);
+      el.querySelector(".v").textContent = fmt(conv(m.f, v), decOf(m.f, m.dec)) + (uu ? " " + uu : "");
       el.className = "mchip " + (m.secondary ? "secondary " : "") + (m.warn ? m.warn(v) : "");
     }
   }
@@ -520,7 +537,7 @@
       if (a != null && (peakAlt == null || a > peakAlt)) peakAlt = a;
       if (peakAlt == null && cols.altitude_m) for (const v of cols.altitude_m) if (v != null && (peakAlt == null || v > peakAlt)) peakAlt = v;
     }
-    $("#chip-peak").textContent = "peak " + (peakAlt == null ? "—" : peakAlt.toFixed(1)) + " m";
+    $("#chip-peak").textContent = "peak " + (peakAlt == null ? "—" : fmt(conv("altitude_m", peakAlt), decOf("altitude_m", 1))) + " " + unitOf("altitude_m", "m");
     const tNow = latest.t_unix;
     const launch = markers.filter((m) => /launch|release|lift/i.test(m.note || "") && (!tNow || m.t_unix <= tNow)).slice(-1)[0];
     if (launch && tNow) {
@@ -645,6 +662,16 @@
   servo.oninput = () => { $("#servo-val").textContent = servo.value + "°"; clearTimeout(servoTimer);
     servoTimer = setTimeout(() => fetch("/api/servo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ angle: +servo.value }) }), 80); };
   $("#values-table").closest("details").addEventListener("toggle", renderTable);
+
+  // units toggle: rebuild charts/profiles so titles and axes update
+  function applyUnits() {
+    $("#units-toggle").textContent = imperial ? "ft/°F" : "m/°C";
+    for (const id of Object.keys(charts)) { charts[id].u.destroy(); charts[id].el.remove(); delete charts[id]; }
+    for (const k of Object.keys(profiles)) { profiles[k].el.remove(); delete profiles[k]; }
+    dirty = true; lastProfileDraw = 0;
+  }
+  $("#units-toggle").onclick = () => { imperial = !imperial; try { localStorage.setItem("units", imperial ? "imperial" : "metric"); } catch (e) { } applyUnits(); };
+  applyUnits();
 
   // QR overlay
   $("#qr-toggle").onclick = () => {
