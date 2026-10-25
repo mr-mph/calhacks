@@ -55,6 +55,11 @@ export const purgeSession = internalMutation({
       await ctx.storage.delete(f.storageId);
       await ctx.db.delete(f._id);
     }
+    const watchHours = await ctx.db
+      .query("watchHours")
+      .withIndex("by_session_hour", (q) => q.eq("session", session))
+      .take(BATCH);
+    for (const w of watchHours) await ctx.db.delete(w._id);
     // Observations last: they define the window the decisions and prices are found in.
     const observationsDone = decisions.length < BATCH && prices.length < BATCH;
     if (observationsDone) for (const o of observations) await ctx.db.delete(o._id);
@@ -64,6 +69,7 @@ export const purgeSession = internalMutation({
       prices: prices.length,
       alerts: Math.min(alerts.length, BATCH),
       frames: frames.length,
+      watchHours: watchHours.length,
       observations: observationsDone ? observations.length : 0,
     };
   },

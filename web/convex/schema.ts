@@ -41,4 +41,15 @@ export default defineSchema({
   })
     .index("by_t", ["t"])
     .index("by_status_t", ["status", "t"]),
+
+  // Frames watched per session and hour, kept at ingest so the stats strip never scans observations.
+  watchHours: defineTable({
+    session: v.string(),
+    hour: v.number(),
+    frames: v.number(),
+    lastT: v.number(),
+    peakNearRip: v.number(),
+  })
+    .index("by_hour", ["hour"])
+    .index("by_session_hour", ["session", "hour"]),
 });

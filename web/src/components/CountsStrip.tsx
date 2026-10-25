@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { Observation, Site } from "../lib/data";
 import { CONFIDENCE_MIN, OFFLINE_AFTER_S, STALE_AFTER_S, zonePeople } from "../lib/data";
 import { ago } from "../lib/time";
+import { StatTile as Tile } from "./ui";
 
 type Props = {
   observation: Observation | null;
@@ -9,16 +10,6 @@ type Props = {
   frameT: number | null;
   now: number;
 };
-
-function Tile({ label, children, note, className = "" }: { label: string; children: ReactNode; note?: ReactNode; className?: string }) {
-  return (
-    <div className={`flex min-w-0 flex-col gap-1 rounded-[16px] bg-surface p-3 shadow-soft ${className}`}>
-      <span className="text-xs font-semibold text-muted">{label}</span>
-      <span className="nums text-2xl leading-none font-bold">{children}</span>
-      {note && <span className="font-mono text-xs text-muted">{note}</span>}
-    </div>
-  );
-}
 
 function freshness(age: number | null): { tone: string; note: string } {
   if (age === null) return { tone: "text-muted", note: "no frames yet" };
