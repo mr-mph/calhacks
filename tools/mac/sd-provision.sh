@@ -31,6 +31,7 @@ LOG=/boot/firmware/balloon-firstboot.log
 exec 9>/var/lock/balloon-firstboot; flock -n 9 || exit 0
 [ -f /var/lib/balloon-firstboot.done ] && exit 0
 exec > >(tee -a "\$LOG" /dev/tty1) 2>&1
+systemctl stop getty@tty1 2>/dev/null; trap 'systemctl start getty@tty1 2>/dev/null' EXIT
 for f in /usr/share/consolefonts/Lat15-TerminusBold28x14.psf.gz /usr/share/consolefonts/Lat15-Fixed18.psf.gz; do [ -f "\$f" ] && setfont -C /dev/tty1 "\$f" && break; done 2>/dev/null
 echo; echo "===== BALLOON FIRST BOOT \$(date) ====="
 systemctl enable --now ssh >/dev/null 2>&1 && echo "SSH: enabled"
@@ -53,7 +54,9 @@ ok=0; for i in \$(seq 1 60); do ping -c1 -W2 deb.debian.org >/dev/null 2>&1 && o
 rm -rf /opt/balloon; cp -r /boot/firmware/balloon /opt/balloon
 chmod +x /opt/balloon/*.sh /opt/balloon/balloon/*.sh /opt/balloon/tools/*.sh 2>/dev/null; chown -R tarun:tarun /opt/balloon
 echo "SETUP: installing packages + services (3-6 min)..."
-if BALLOON_USER=tarun bash /opt/balloon/setup.sh >/boot/firmware/balloon-setup.log 2>&1; then echo "SETUP: OK"; else echo "SETUP: FAILED (see balloon-setup.log on the SD card)"; fi
+( BALLOON_USER=tarun bash /opt/balloon/setup.sh >/boot/firmware/balloon-setup.log 2>&1; echo \$? > /tmp/setup.rc ) &
+sp=\$!; m=0; while kill -0 \$sp 2>/dev/null; do sleep 30; m=\$((m+1)); echo "SETUP: still installing... \$((m/2)).\$(( (m%2)*5 )) min  (\$(tail -c 300 /boot/firmware/balloon-setup.log 2>/dev/null | tr '\\n' ' ' | tail -c 90))"; done
+[ "\$(cat /tmp/setup.rc 2>/dev/null)" = "0" ] && echo "SETUP: OK" || echo "SETUP: FAILED (see balloon-setup.log on the SD card)"
 echo "AP: starting own Wi-Fi 'BalloonNet'..."
 if bash /opt/balloon/tools/wifi-mode.sh ap BalloonNet '$APPASS' >/dev/null 2>&1; then echo "AP: up"; else echo "AP: FAILED (Pi stays on '$SSID')"; fi
 sleep 3; ip -br addr | grep -v '^lo'
