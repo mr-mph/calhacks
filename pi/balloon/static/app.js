@@ -7,8 +7,18 @@
     if (!box) { box = document.createElement("pre"); box.id = "js-errors"; box.className = "js-errors"; document.body.prepend(box); }
     box.textContent += msg + "\n";
   }
-  addEventListener("error", (e) => showError((e.message || e) + " @ " + (e.filename || "").split("/").pop() + ":" + e.lineno));
-  addEventListener("unhandledrejection", (e) => showError("promise: " + (e.reason && e.reason.message || e.reason)));
+  addEventListener("error", (e) => {
+    // Safari masks exceptions it cannot attribute as "Script error." with no file/line; our own try/catch
+    // blocks below print the real stack, so only show window errors that carry detail.
+    if (!e.message || (/^Script error\.?$/.test(e.message) && !e.filename)) return;
+    showError(e.message + " @ " + (e.filename || "").split("/").pop() + ":" + e.lineno + (e.error && e.error.stack ? "\n" + String(e.error.stack).split("\n").slice(0, 3).join("\n") : ""));
+  });
+  addEventListener("unhandledrejection", (e) => showError("promise: " + (e.reason && e.reason.stack || e.reason && e.reason.message || e.reason)));
+  const _seen = {};
+  function logOnce(where, e) {           // real stack traces for the phone, each place reported once
+    if (_seen[where]) return; _seen[where] = true;
+    showError(where + ": " + (e && e.stack ? String(e.stack).split("\n").slice(0, 4).join("\n") : e));
+  }
 
   // ---------- chart definitions (one axis per chart; series colors fixed by slot) ----------
   const CHARTS = [
@@ -385,17 +395,85 @@
     if (mb) { const rr = Math.min(1, tilt / 45) * 7; mb.setAttribute("cx", (10 + rr * Math.cos(dir)).toFixed(1)); mb.setAttribute("cy", (10 - rr * Math.sin(dir)).toFixed(1)); }
   }
 
+  // ---------- narrator: captions from the laptop, spoken Q&A ----------
+  let narSeq = 0, voiceOn = false, lastPlayedId = 0;
+  const narAudio = $("#nar-audio");
+  function speak(rec) {
+    if (!voiceOn || !rec || !rec.audio_url || rec.id <= lastPlayedId) return;
+    lastPlayedId = rec.id;
+    narAudio.src = rec.audio_url; narAudio.play().catch(() => {});
+  }
+  function narItem(c) {
+    const t = new Date(c.t_unix * 1000).toLocaleTimeString();
+    const play = c.audio_url ? `<button data-audio="${c.audio_url}">▶</button>` : "";
+    if (c.kind === "answer") return `<div class="nar-item"><time>${t}</time><span class="q">You: ${c.question || ""}</span><br><span class="a">${c.text}</span>${play}</div>`;
+    return `<div class="nar-item"><time>${t}</time>${c.text}${play}</div>`;
+  }
+  async function pollCaptions() {
+    if (replay) return;
+    try {
+      const r = await fetch("/api/captions?since=" + narSeq); const d = await r.json();
+      const card = $("#narrator-card");
+      if (!d.latest) { return; }
+      card.classList.remove("hidden");
+      if (d.items.length) {
+        narSeq = d.seq;
+        const log = $("#nar-log");
+        log.innerHTML = d.items.slice().reverse().map(narItem).join("") + log.innerHTML;
+        while (log.children.length > 60) log.removeChild(log.lastChild);
+        $("#nar-latest").textContent = d.latest.kind === "answer" ? d.latest.text : d.latest.text;
+        const newest = d.items[d.items.length - 1];
+        speak(newest);
+      }
+      $("#nar-latest").style.opacity = d.narrator_online ? 1 : 0.5;
+    } catch (e) { logOnce("captions", e); }
+  }
+  setInterval(pollCaptions, 1500);
+  $("#nar-log").addEventListener("click", (e) => { const b = e.target.closest("button[data-audio]"); if (b) { narAudio.src = b.dataset.audio; narAudio.play().catch(() => {}); } });
+  $("#btn-voice").onclick = () => {
+    voiceOn = !voiceOn; $("#btn-voice").textContent = voiceOn ? "🔊 Voice on" : "🔈 Voice off"; $("#btn-voice").classList.toggle("ghost", !voiceOn);
+    if (voiceOn) { narAudio.muted = false; narAudio.play().catch(() => {}); }   // user gesture unlocks audio on phones
+  };
+  async function ask(text) {
+    text = (text || "").trim(); if (!text) return;
+    $("#nar-latest").textContent = "You: " + text + " …";
+    try {
+      const r = await fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+      const d = await r.json(); if (!d.ok) throw new Error(d.error || "ask failed");
+      const t0 = Date.now();
+      const timer = setInterval(async () => {
+        if (Date.now() - t0 > 45000) { clearInterval(timer); $("#nar-latest").textContent = "No answer (is the laptop narrator running?)"; return; }
+        try { const s = await (await fetch("/api/ask/" + d.id)).json(); if (s.answer) { clearInterval(timer); } } catch (e) { }
+      }, 1000);
+    } catch (e) { $("#nar-latest").textContent = "Could not send: " + e.message; }
+  }
+  $("#btn-ask").onclick = () => { ask($("#ask-text").value); $("#ask-text").value = ""; };
+  $("#ask-text").addEventListener("keydown", (e) => { if (e.key === "Enter") { ask($("#ask-text").value); $("#ask-text").value = ""; } });
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null;
+  $("#btn-mic").onclick = () => {
+    if (!SR) { $("#ask-text").focus(); $("#nar-latest").textContent = "Voice input isn't available in this browser; type instead."; return; }
+    if (rec) { rec.stop(); return; }
+    rec = new SR(); rec.lang = "en-US"; rec.interimResults = true; rec.continuous = false;
+    $("#btn-mic").textContent = "⏹ Listening…"; $("#btn-mic").classList.add("rec");
+    let finalText = "";
+    rec.onresult = (e) => { let t = ""; for (const r of e.results) t += r[0].transcript; $("#ask-text").value = t; if (e.results[e.results.length - 1].isFinal) finalText = t; };
+    rec.onerror = (e) => { $("#nar-latest").textContent = "Mic error: " + e.error; };
+    rec.onend = () => { $("#btn-mic").textContent = "🎤 Ask"; $("#btn-mic").classList.remove("rec"); rec = null; const t = finalText || $("#ask-text").value; if (t.trim()) { ask(t); $("#ask-text").value = ""; } };
+    rec.start();
+  };
+
   // ---------- mobile metric bar: main readings first, colour-coded ----------
   const METRICS = [
-    { f: "elevation_msl_m", label: "elev", unit: "m", dec: 0, color: "--s1" },
-    { f: "pressure_hpa", label: "hPa", unit: "", dec: 1, color: "--s2" },
-    { f: "temp_c", label: "temp", unit: "°", dec: 1, color: "--s3" },
+    { f: "elevation_msl_m", label: "elevation", unit: "m", dec: 0, color: "--s1" },
+    { f: "pressure_hpa", label: "pressure", unit: "hPa", dec: 1, color: "--s2" },
+    { f: "temp_c", label: "temp", unit: "°C", dec: 1, color: "--s3" },
     { f: "tilt_deg", label: "tilt", unit: "°", dec: 0, color: "--s3", bubble: true, warn: (v) => v > 25 ? "warn" : "" },
-    { f: "aq_raw", label: "air", unit: "", dec: 0, color: "--s2", warn: (v) => v > 700 ? "bad" : (v > 300 ? "warn" : "") },
-    { f: "altitude_m", label: "alt", unit: "m", dec: 1, color: "--s1" },
-    { f: "vspeed_mps", label: "climb", unit: "m/s", dec: 2, color: "--s1" },
-    { f: "det_total", label: "yolo", unit: "", dec: 0, color: "--s2" },
-    { f: "cpu_temp_c", label: "cpu", unit: "°", dec: 0, color: "--s3", warn: (v) => v > 75 ? "bad" : "" },
+    { f: "aq_raw", label: "air quality", unit: "", dec: 0, color: "--s2", warn: (v) => v > 700 ? "bad" : (v > 300 ? "warn" : "") },
+    { f: "altitude_m", label: "altitude", unit: "m", dec: 1, color: "--s1" },
+    { f: "vspeed_mps", label: "climb", unit: "m/s", dec: 2, color: "--s1", secondary: true },
+    { f: "det_total", label: "yolo", unit: "", dec: 0, color: "--s2", secondary: true },
+    { f: "cpu_temp_c", label: "cpu", unit: "°C", dec: 0, color: "--s3", secondary: true, warn: (v) => v > 75 ? "bad" : "" },
   ];
   function renderMetricBar() {
     const bar = $("#metricbar");
@@ -413,7 +491,7 @@
       }
       el.classList.remove("hidden");
       el.querySelector(".v").textContent = fmt(v, m.dec) + (m.unit ? " " + m.unit : "");
-      el.className = "mchip " + (m.warn ? m.warn(v) : "");
+      el.className = "mchip " + (m.secondary ? "secondary " : "") + (m.warn ? m.warn(v) : "");
     }
   }
 
@@ -468,17 +546,20 @@
     }
     if (dirty) {
       dirty = false;
-      redraw(); renderTiles(); renderMetricBar(); renderChips(); renderFlight(); renderOrientation(); renderProfiles(false);
-      if ($("#values-table").closest("details").open) renderTable();
+      for (const [name, fn] of [["charts", redraw], ["tiles", renderTiles], ["metricbar", renderMetricBar], ["chips", renderChips],
+                                ["flight", renderFlight], ["orientation", renderOrientation], ["profiles", () => renderProfiles(false)]]) {
+        try { fn(); } catch (e) { logOnce(name, e); }
+      }
+      try { if ($("#values-table").closest("details").open) renderTable(); } catch (e) { logOnce("table", e); }
     }
   }
-  setInterval(tick, 250);
+  setInterval(() => { try { tick(); } catch (e) { logOnce("tick", e); } }, 250);
 
   // ---------- SSE ----------
   function connect() {
     const es = new EventSource("/events");
-    es.addEventListener("sample", (e) => pushSample(JSON.parse(e.data)));
-    es.addEventListener("marker", (e) => { markers.push(JSON.parse(e.data)); dirty = true; });
+    es.addEventListener("sample", (e) => { try { pushSample(JSON.parse(e.data)); } catch (err) { logOnce("sse", err); } });
+    es.addEventListener("marker", (e) => { try { markers.push(JSON.parse(e.data)); dirty = true; } catch (err) { logOnce("marker", err); } });
     es.onerror = () => { /* EventSource reconnects on its own */ };
   }
   async function loadHistory() {
@@ -501,7 +582,7 @@
         "I2C: " + (si.i2c_addresses || []).join(", ") + " · detected: " + (si.sensors || []).map((s) => s.name).join(", ") +
         ((si.errors || []).length ? " · errors: " + si.errors.join("; ") : "");
       if (!replay && status.mosaic && mosaicVisible()) refreshMosaic();
-    } catch (e) { }
+    } catch (e) { logOnce("status", e); }
   }
   async function pollSessions() {
     try {

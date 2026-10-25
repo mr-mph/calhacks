@@ -11,6 +11,8 @@ Runs the sampler thread (so logging continues even with no viewers) and serves:
   /api/qnh   (POST)    {"qnh": 1016.2} sea-level pressure for the estimated elevation
   /api/level (POST)    take the current orientation as upright (tilt reference)
   /api/detections (POST/GET) ground station posts YOLO detections per frame; dashboard overlays them on the video
+  /api/captions (POST/GET)   laptop narrator posts spoken captions (+mp3); dashboard shows and plays them
+  /api/ask (POST), /api/ask/pending, /api/ask/answer (POST), /api/ask/<id>   spoken Q&A relay (browser -> laptop)
   /api/elevation (POST) {"elevation_m": 5} calibrate the estimated elevation to the known ground elevation here
   /api/servo (POST)    {"angle": 0..180}  optional camera pan
   /api/sessions        list recorded sessions with sizes
@@ -174,6 +176,111 @@ def api_detections_get():
     if not d:
         return jsonify({"available": False})
     return jsonify({"available": True, "age_s": round(time.time() - d["received_at"], 1), "n": _det["count"], **d})
+
+
+# ---------------- narrator: captions + spoken Q&A (the model runs on the ground laptop, see ground/narrator.py) -----------
+import base64 as _b64
+import threading as _threading
+import uuid as _uuid
+_nar = {"captions": [], "seq": 0, "questions": {}, "lock": _threading.Lock()}
+
+
+def _save_audio(b64):
+    if not b64:
+        return None
+    try:
+        raw = _b64.b64decode(b64)
+        d = os.path.join(telemetry.session_dir, "audio")
+        os.makedirs(d, exist_ok=True)
+        name = "%.3f.mp3" % time.time()
+        with open(os.path.join(d, name), "wb") as f:
+            f.write(raw)
+        return "/data/sessions/%s/audio/%s" % (telemetry.session, name)
+    except Exception as e:
+        log.warning("audio save failed: %s", e)
+        return None
+
+
+def _add_caption(kind, text, audio_b64=None, question=None, extra=None):
+    with _nar["lock"]:
+        _nar["seq"] += 1
+        rec = {"id": _nar["seq"], "kind": kind, "text": text, "t_unix": time.time(), "question": question,
+               "audio_url": _save_audio(audio_b64)}
+        if extra:
+            rec.update(extra)
+        _nar["captions"].append(rec)
+        _nar["captions"] = _nar["captions"][-200:]
+    try:
+        with open(os.path.join(telemetry.session_dir, "captions.jsonl"), "a") as f:
+            f.write(json.dumps(rec, separators=(",", ":")) + "\n")
+    except OSError:
+        pass
+    telemetry._broadcast({"type": "caption", "marker": rec})
+    return rec
+
+
+@app.route("/api/captions", methods=["POST"])
+def api_captions_post():
+    """Laptop narrator posts {"text": "...", "audio_b64": "<mp3>", "model": "..."}."""
+    data = request.get_json(silent=True) or {}
+    text = str(data.get("text") or "").strip()
+    if not text:
+        return jsonify({"ok": False, "error": "text required"}), 400
+    rec = _add_caption("caption", text[:600], data.get("audio_b64"), extra={"model": data.get("model")})
+    return jsonify({"ok": True, "id": rec["id"], "audio_url": rec["audio_url"]})
+
+
+@app.route("/api/captions")
+def api_captions_get():
+    since = request.args.get("since", type=int) or 0
+    with _nar["lock"]:
+        items = [c for c in _nar["captions"] if c["id"] > since][-50:]
+        latest = _nar["captions"][-1] if _nar["captions"] else None
+    return jsonify({"items": items, "latest": latest, "seq": _nar["seq"], "narrator_online": bool(latest and time.time() - latest["t_unix"] < 90)})
+
+
+@app.route("/api/ask", methods=["POST"])
+def api_ask():
+    """Dashboard: {"text": "what do you see?"} -> {"id"}; the laptop answers via /api/ask/answer."""
+    data = request.get_json(silent=True) or {}
+    text = str(data.get("text") or "").strip()[:500]
+    if not text:
+        return jsonify({"ok": False, "error": "text required"}), 400
+    qid = _uuid.uuid4().hex[:10]
+    with _nar["lock"]:
+        _nar["questions"][qid] = {"id": qid, "text": text, "t_unix": time.time(), "answer": None}
+        for k in [k for k, v in _nar["questions"].items() if time.time() - v["t_unix"] > 600]:
+            _nar["questions"].pop(k, None)
+    return jsonify({"ok": True, "id": qid})
+
+
+@app.route("/api/ask/pending")
+def api_ask_pending():
+    with _nar["lock"]:
+        return jsonify([q for q in _nar["questions"].values() if q["answer"] is None])
+
+
+@app.route("/api/ask/answer", methods=["POST"])
+def api_ask_answer():
+    data = request.get_json(silent=True) or {}
+    qid = data.get("id")
+    with _nar["lock"]:
+        q = _nar["questions"].get(qid)
+    if not q:
+        return jsonify({"ok": False, "error": "unknown question"}), 404
+    rec = _add_caption("answer", str(data.get("text") or "")[:1000], data.get("audio_b64"), question=q["text"])
+    with _nar["lock"]:
+        q["answer"] = rec
+    return jsonify({"ok": True, "id": rec["id"], "audio_url": rec["audio_url"]})
+
+
+@app.route("/api/ask/<qid>")
+def api_ask_status(qid):
+    with _nar["lock"]:
+        q = _nar["questions"].get(qid)
+    if not q:
+        return jsonify({"ok": False, "error": "unknown question"}), 404
+    return jsonify({"ok": True, "id": qid, "text": q["text"], "answer": q["answer"]})
 
 
 @app.route("/api/level", methods=["POST"])

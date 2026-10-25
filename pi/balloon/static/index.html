@@ -93,6 +93,23 @@
     </div>
   </section>
 
+  <section class="card narrator hidden" id="narrator-card">
+    <div class="card-head">
+      <h2>Narrator</h2>
+      <div class="actions">
+        <button class="btn ghost" id="btn-voice" title="Play new captions and answers out loud">🔈 Voice off</button>
+        <button class="btn" id="btn-mic" title="Ask the balloon a question by voice">🎤 Ask</button>
+      </div>
+    </div>
+    <div class="nar-latest" id="nar-latest">waiting for the narrator…</div>
+    <div class="nar-ask">
+      <input id="ask-text" type="text" placeholder="or type a question" aria-label="Question">
+      <button class="btn" id="btn-ask">Send</button>
+    </div>
+    <div class="nar-log" id="nar-log"></div>
+    <audio id="nar-audio" preload="none"></audio>
+  </section>
+
   <section class="card controls">
     <div class="card-head">
       <h2>Charts</h2>

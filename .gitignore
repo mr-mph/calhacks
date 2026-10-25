@@ -14,3 +14,4 @@ ground/datasets/
 *.pt
 ground/runs-rip-queue.log
 ground/out/
+secrets.env
