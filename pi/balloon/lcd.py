@@ -12,18 +12,19 @@ class GroveLCD:
     def __init__(self, bus, rgb_addr=None):
         self.bus = bus
         self.rgb = rgb_addr
-        self._cmd(0x28); time.sleep(0.005)   # 2 lines, 5x8
-        self._cmd(0x28); time.sleep(0.005)
+        time.sleep(0.2)                      # the controller needs > 50 ms after power-on
+        for _ in range(3):                   # function set, repeated like the datasheet's init sequence
+            self._cmd(0x28); time.sleep(0.005)
         self._cmd(0x0C); time.sleep(0.005)   # display on, no cursor
         self.clear()
-        self._cmd(0x06)                      # entry mode: left to right
+        self._cmd(0x06); time.sleep(0.002)   # entry mode: left to right
         if self.rgb == 0x62:
             for reg, v in ((0x00, 0x00), (0x01, 0x00), (0x08, 0xAA)):
                 self.bus.write_byte_data(0x62, reg, v)
         elif self.rgb == 0x30:
             for reg, v in ((0x00, 0x07), (0x04, 0x15)):
                 self.bus.write_byte_data(0x30, reg, v)
-        self.set_rgb(0, 80, 160)
+        self.set_rgb(255, 255, 255)          # white: best contrast for the text
 
     def _cmd(self, c):
         self.bus.write_byte_data(TXT, 0x80, c)
@@ -46,8 +47,8 @@ class GroveLCD:
         for row, text in ((0, line1), (1, line2)):
             self._cmd(0x80 | (0x40 if row else 0x00))
             data = text[:16].ljust(16).encode("ascii", "replace")
-            # 16 bytes at a time is fine for the JHD1313 (control byte 0x40 = data)
-            self.bus.write_i2c_block_data(TXT, 0x40, list(data))
+            for ch in data:                  # one character per transaction, as the Seeed reference code does
+                self.bus.write_byte_data(TXT, 0x40, ch)
 
 
 class LcdUpdater(threading.Thread):
