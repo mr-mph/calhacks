@@ -276,6 +276,8 @@ class Telemetry(threading.Thread):
                     pass
 
     def _derive(self, row, t_mono):
+        if row.get("temp_c") is not None and config.TEMP_OFFSET_C:
+            row["temp_c"] = round(row["temp_c"] + config.TEMP_OFFSET_C, 2)
         p = row.get("pressure_hpa")
         if p is not None and p > 300:
             if self.rezero_requested:

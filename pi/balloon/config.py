@@ -22,6 +22,7 @@ SESSIONS_DIR = os.path.join(DATA_ROOT, "sessions")
 
 # Sampling
 SAMPLE_HZ = _env("BALLOON_SAMPLE_HZ", 5.0, float)
+TEMP_OFFSET_C = _env("BALLOON_TEMP_OFFSET_C", 0.0, float)   # barometer sits on the warm Pi; measured ~24 C high
 HISTORY_SECONDS = _env("BALLOON_HISTORY_SECONDS", 1800, int)   # in-memory ring buffer for charts
 ZERO_SAMPLES = _env("BALLOON_ZERO_SAMPLES", 25, int)          # samples averaged for ground pressure
 ALT_SMOOTHING = _env("BALLOON_ALT_SMOOTHING", 0.25, float)    # EMA alpha for displayed altitude
