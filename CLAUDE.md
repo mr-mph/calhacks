@@ -116,5 +116,10 @@ ssh tarun@balloon.local journalctl -fu balloon-telemetry
   All four services run; camera streams with HW encoder; detected DPS368 barometer (new driver `drivers/dps310.py`),
   MMA7660 accelerometer (mounted on its side: press **Level** on the dashboard once it hangs), Base Hat ADC + air quality.
   QNH set to 1017 hPa from the KSFO METAR. Venue Wi-Fi *and* venue wired isolate clients: use BalloonNet.
+- 2026-10-24 22:45: ground station runs on Seth's Mac (`ground/.venv`, stock yolo11n weights; copy
+  `runs/visdrone/weights/best.pt` + `runs/ripaid/weights/best.pt` from the training Mac for the real models) against
+  the live Pi: `cd ground && .venv/bin/python station.py --pi http://10.42.0.1:8080 --no-convex --no-spacetime`.
+  Detections are posted to the Pi (`POST /api/detections`) and drawn on the dashboard video. Grove LCD RGB is a 5 V
+  part: lights up but shows no text from the Base Hat's 3.3 V ports (driver stays, harmless).
 - Ideas not started: metre scale bar on the mosaic (footprint = 2*h*tan(FOV/2)), tilt-rectified stills,
   Claude-vision captions from snapshots (laptop side), ESP32 tether-length encoder, servo pan (code exists, off).
