@@ -44,8 +44,13 @@ if [ -n "$SESSION" ]; then
 fi
 T=$(vcgencmd measure_temp 2>/dev/null | tr -dc '0-9.'); [ -n "$T" ] && { awk "BEGIN{exit !($T < 75)}" && ok "CPU ${T}C" || warn "CPU hot: ${T}C"; }
 TH=$(vcgencmd get_throttled 2>/dev/null | cut -d= -f2); [ "$TH" = "0x0" ] && ok "power OK (not throttled)" || warn "throttled flags $TH -> check power bank / cable"
-RSSI=$(awk 'NR>2 && /wlan/{print int($4)}' /proc/net/wireless); [ -n "$RSSI" ] && { [ "$RSSI" -gt -75 ] && ok "wifi ${RSSI} dBm" || warn "weak wifi ${RSSI} dBm"; } || warn "wlan0 not associated"
+if nmcli -t -f NAME,DEVICE con show --active 2>/dev/null | grep -q "^balloon-ap:wlan0"; then
+  ok "wifi: access point BalloonNet ($(iw dev wlan0 station dump 2>/dev/null | grep -c Station) client(s) connected)"
+else
+  RSSI=$(awk 'NR>2 && /wlan/{print int($4)}' /proc/net/wireless); [ -n "$RSSI" ] && { [ "$RSSI" -gt -75 ] && ok "wifi ${RSSI} dBm" || warn "weak wifi ${RSSI} dBm"; } || warn "wlan0 not associated"
+fi
 IP=$(hostname -I | awk '{print $1}')
 echo "  dashboard: http://$IP:8080   (http://$(hostname).local:8080)"
+nmcli -t -f NAME,DEVICE con show --active 2>/dev/null | grep -q "^balloon-ap:wlan0" && echo "  on BalloonNet: http://10.42.0.1:8080"
 echo "== $PASS ok, $FAIL failed =="
 [ "$FAIL" -eq 0 ] && echo "GO" || echo "NO-GO"
