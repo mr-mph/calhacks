@@ -36,7 +36,10 @@ id tarun >/dev/null 2>&1 || useradd -m -s /bin/bash -G users,adm,dialout,audio,n
 echo 'tarun:$PIPASS' | chpasswd && echo "USER: tarun password set"
 echo 'tarun ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/010-tarun; chmod 440 /etc/sudoers.d/010-tarun
 hostnamectl set-hostname balloon 2>/dev/null; grep -q balloon /etc/hosts || echo "127.0.1.1 balloon" >> /etc/hosts
-nmcli radio wifi on >/dev/null 2>&1; nmcli dev wifi rescan >/dev/null 2>&1; sleep 4
+rfkill unblock all 2>/dev/null; raspi-config nonint do_wifi_country US >/dev/null 2>&1; iw reg set US 2>/dev/null
+nmcli radio wifi on >/dev/null 2>&1; sleep 2; nmcli dev wifi rescan >/dev/null 2>&1; sleep 5
+echo "RFKILL: \$(rfkill list wifi 2>/dev/null | grep -i blocked | tr '\\n' ' ')"
+echo "WIFI SCAN: \$(nmcli -t -f SSID dev wifi list 2>/dev/null | grep -v '^$' | sort -u | head -8 | tr '\\n' ',')"
 nmcli con show venue-wifi >/dev/null 2>&1 || nmcli con add type wifi ifname wlan0 con-name venue-wifi ssid '$SSID' wifi-sec.key-mgmt wpa-psk wifi-sec.psk '$WPASS' connection.autoconnect yes >/dev/null 2>&1
 nmcli con up venue-wifi >/dev/null 2>&1 && echo "WIFI: joined '$SSID'" || echo "WIFI: could not join '$SSID' yet (will keep trying)"
 nmcli con delete cable >/dev/null 2>&1 || true
@@ -122,6 +125,7 @@ grep -q "ds=nocloud;i=" "$BOOT/cmdline.txt" && sed -i '' -E "s/(ds=nocloud;i=)[^
 # readable console, I2C, USB current
 sed -i '' 's/ quiet splash plymouth.ignore-serial-consoles//' "$BOOT/cmdline.txt"
 grep -q "video=HDMI" "$BOOT/cmdline.txt" || sed -i '' 's/^console=serial0,115200 /console=serial0,115200 video=HDMI-A-1:1024x768@60 /' "$BOOT/cmdline.txt"
+grep -q "ieee80211_regdom" "$BOOT/cmdline.txt" || sed -i '' 's/rootwait/rootwait cfg80211.ieee80211_regdom=US/' "$BOOT/cmdline.txt"
 grep -q '^dtparam=i2c_arm=on' "$BOOT/config.txt" || printf '\n[all]\ndtparam=i2c_arm=on\nusb_max_current_enable=1\n' >> "$BOOT/config.txt"
 touch "$BOOT/ssh"
 python3 -c "import yaml; yaml.safe_load(open('$BOOT/user-data')); yaml.safe_load(open('$BOOT/network-config')); print('cloud-init files: valid')"
