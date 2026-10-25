@@ -155,3 +155,12 @@ th { color: var(--muted); font-weight: 500; }
 .det-overlay .other { stroke: #e87ba4; }
 .det-overlay text { font: 600 11px system-ui; fill: #fff; paint-order: stroke; stroke: rgba(0,0,0,.7); stroke-width: 3px; }
 .det-badge { position: absolute; left: 8px; bottom: 8px; background: rgba(0,0,0,.6); color: #fff; font: 600 12px system-ui; padding: 4px 8px; border-radius: 8px; pointer-events: none; }
+
+.orient-mini { position: absolute; left: 50%; top: 50%; width: 84px; height: auto; transform: translate(-50%, -50%);
+  opacity: .8; pointer-events: none; }
+.orient-mini .ring { fill: none; stroke: rgba(255,255,255,.85); stroke-width: 2; }
+.orient-mini .ring.faint { stroke: rgba(255,255,255,.35); }
+.orient-mini .cross { stroke: rgba(255,255,255,.35); stroke-width: 1; }
+.orient-mini .bubble { fill: var(--s3); stroke: #fff; stroke-width: 2; transition: cx .25s linear, cy .25s linear; }
+.orient-mini .lbl { font: 700 13px system-ui; fill: #fff; paint-order: stroke; stroke: rgba(0,0,0,.7); stroke-width: 3px; }
+@media (min-width: 900px) { .orient-mini { width: 110px; } }

@@ -354,7 +354,7 @@
         dirty = true;
       }
       badge.classList.remove("hidden");
-      badge.textContent = (stale ? "detector stale " : "") + "cars " + ((d.counts || {}).car ?? 0) + " · people " + ((d.counts || {}).person ?? 0) + (d.zones ? " · zones " + Object.keys(d.zones).length : "");
+      badge.textContent = (stale ? "detector stale " : "") + "cars " + (((d.counts || {}).car != null) ? (d.counts || {}).car : 0) + " · people " + (((d.counts || {}).person != null) ? (d.counts || {}).person : 0) + (d.zones ? " · zones " + Object.keys(d.zones).length : "");
       svg.style.opacity = stale ? 0.35 : 1;
     } catch (e) { }
   }
@@ -363,7 +363,7 @@
   // ---------- orientation (bubble level + side view) ----------
   function renderOrientation() {
     const ax = latest.ax_g, ay = latest.ay_g, az = latest.az_g, tilt = latest.tilt_deg;
-    const card = $("#orient-card");
+    const card = $("#orient-mini");
     if (ax == null || tilt == null) { card.classList.add("hidden"); return; }
     card.classList.remove("hidden");
     // direction of lean in the sensor's horizontal plane; magnitude = tilt relative to the Level reference
@@ -375,10 +375,7 @@
     $("#bubble").setAttribute("cx", (80 + r * Math.cos(dir)).toFixed(1));
     $("#bubble").setAttribute("cy", (80 - r * Math.sin(dir)).toFixed(1));
     $("#orient-bubble-lbl").textContent = tilt < 1.5 ? "level" : tilt.toFixed(1) + "° lean";
-    const side = Math.max(-80, Math.min(80, tilt * (Math.cos(dir) >= 0 ? 1 : -1)));
-    $("#rig").setAttribute("transform", "rotate(" + side.toFixed(1) + " 80 36)");
-    $("#orient-side-lbl").textContent = tilt.toFixed(1) + "°";
-    $("#orient-note").textContent = status.leveled ? "tilt relative to the Level reference" : "press Level once the payload hangs still";
+    $("#orient-mini").title = status.leveled ? "tilt relative to the Level reference" : "press Level once the payload hangs still";
   }
 
   let peakAlt = null;
@@ -416,7 +413,7 @@
   function renderTable() {
     const tb = $("#values-table tbody");
     const keys = Object.keys(latest).sort();
-    tb.innerHTML = keys.map((k) => `<tr><td>${k}</td><td>${typeof latest[k] === "number" ? latest[k] : (latest[k] ?? "—")}</td></tr>`).join("");
+    tb.innerHTML = keys.map((k) => `<tr><td>${k}</td><td>${typeof latest[k] === "number" ? latest[k] : (latest[k] != null ? latest[k] : "—")}</td></tr>`).join("");
   }
 
   function tick() {

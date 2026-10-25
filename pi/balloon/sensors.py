@@ -340,6 +340,13 @@ class Telemetry(threading.Thread):
                         log.warning("%s read failed (%d): %s", s.name, self.failures[s.name], e)
             try:
                 self._derive(row, t_mono)
+                ext = self.external
+                if ext:
+                    age = time.time() - ext.get('received_at', 0)
+                    if age < 15:  # only while the station is actually feeding us
+                        row['det_cars'] = ext.get('det_cars')
+                        row['det_people'] = ext.get('det_people')
+                        row['det_age_s'] = round(age, 1)
             except Exception as e:  # a bad reference (QNH, level) must never stop logging
                 self.failures["derive"] += 1
                 if self.failures["derive"] in (1, 5, 50, 500):
