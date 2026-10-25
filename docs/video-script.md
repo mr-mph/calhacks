@@ -6,17 +6,35 @@ Target length: under 3:00. Upload to YouTube as Unlisted, paste the link on Devp
 
 | Time | On screen | Voiceover |
 |---|---|---|
-| 0:00 to 0:08 | Balloon release from the ground, looking up as it climbs | "We built a camera that can sit thousands of feet up and watch one place for hours." |
-| 0:08 to 0:15 | Payload close-up (Pi, camera, power bank on the tether) | "Tonight it flies on a tether. The same payload can go much higher." |
-| 0:15 to 0:35 | Quick cuts: beach waves, a full parking lot, traffic | "Satellite photos are days old. Drones last twenty minutes and are banned over Ocean Beach. So nobody is watching when a rip current forms, when a lot fills up, or when a disaster hits." |
-| 0:35 to 0:45 | Swimmer interview clip, or a still of the beach with the quote as text | "We talked to a swimmer right outside. He said updates within minutes of a rip forming would change everything." |
-| 0:45 to 0:58 | Balloon going really high, then the live view looking down (Pi dashboard, `balloon.local:8080`) | "Every two seconds it sends a frame down to our ground station." |
-| 0:58 to 1:12 | `ml-traffic-0000271.mp4` then `ml-rip-current.mp4` (sped up) | "Our own models, trained on drone imagery, count every car and person, and flag rip currents, including on beaches they never saw in training." |
-| 1:12 to 1:55 | Alerts tab: alert arrives, Grok reads it aloud, tap Confirm, switch to Jira, the incident is there | "When a rip shows up, Claude writes the alert, says how sure it is, and reads it out loud so a lifeguard never has to look at a screen. A person confirms it, and it lands in the patrol's Jira as an incident, assigned to whoever is on shift." |
-| 1:55 to 2:20 | Live tab: spaces free and taken, lot price, open "Why did the price change?" | "The same view runs a parking map. An agent sets the lot price from how full it is, inside hard limits, and every change has a reason you can read." |
-| 2:20 to 2:30 | Markets site: one market, the odds | "People can even bet play credits on what the balloon will count, settled by the camera itself." |
-| 2:30 to 2:45 | One architecture slide: Pi, our models, Claude, Grok, Convex, SpacetimeDB, Jira | "A Raspberry Pi, our own models, Claude, Convex for the live map, SpacetimeDB for the markets, and Atlassian Forge for the patrol." |
+| 0:00 to 0:10 | Balloon on the ground, then a slow zoom up to it as it lifts | "Hi, we're Sauron. You're probably wondering what that is. [zoom] It's our satellite. Except it's a few hundred feet up, not a few hundred miles, so it can see a single swimmer, and it stays over the same beach for hours." |
+| 0:10 to 0:18 | Payload close-up (Pi, camera, power bank on the tether) | "Tonight it flies on a tether at [height we actually flew]. Physics lets the idea go much further: a solar stratospheric balloon with a long lens can hold over a whole city at 90,000 feet for weeks." |
+| 0:18 to 0:35 | Quick cuts: beach waves, the lot behind Ocean Beach, traffic | "Rip currents cause more than 80% of surf beach rescues. Ocean Beach has no lifeguard towers, drones are banned there, and satellite photos are days old. So nobody is watching when a rip forms." |
+| 0:35 to 0:45 | Swimmer interview clip, or a still of the beach with the quote as text | "We talked to swimmers right outside. They told us lifeguards are outnumbered, and that an alert within minutes of a rip forming would change everything." |
+| 0:45 to 0:58 | Balloon going up, then the live view looking down (Pi dashboard, `balloon.local:8080`) | "Every two seconds the payload sends a frame down to a laptop on the ground, and the results go to any phone on the beach." |
+| 0:58 to 1:12 | `ml-traffic-0000271.mp4` then `ml-rip-current.mp4` (sped up) | "Our own models, trained on aerial imagery, count every car and person, and flag rip currents, including on beaches they never saw in training." |
+| 1:12 to 1:50 | Alerts tab: alert arrives, Grok reads it aloud, tap Confirm, switch to Jira, the incident is there. Hold 3 s on the stats strip | "When a rip shows up, Claude writes the alert and says how sure it is. Grok reads it out loud, so the lifeguard keeps their eyes on the water. The lifeguard confirms it, and only then does it land in the patrol's Jira as an incident, assigned to whoever is on shift. From frame to confirmed alert: [N] seconds." |
+| 1:50 to 2:15 | `ml-parking-busy.mp4`, then Live tab: price going up, open "Why did the price change?", then a frame marked unreliable with the price held | "The frame that watches the water also watches the lot behind it. When the lot fills, the patrol knows the beach is about to. An agent prices the lot from how full it is, inside hard limits, and writes down why. When the camera can't see clearly, it holds the price instead of guessing." |
+| 2:15 to 2:30 | Markets site: one market, the odds, a settled market | "Every prediction market needs a trusted source for the result. Ours is a camera counting every two seconds, with a timestamp. People bet play credits on what the balloon will count, and the camera settles it." |
+| 2:30 to 2:45 | One architecture slide: Pi, our models, Claude, Grok, Convex, SpacetimeDB, Jira | "A Raspberry Pi, our own models, Claude, Grok for the voice, Convex for the live map, SpacetimeDB for the markets, and Atlassian Forge for the patrol." |
 | 2:45 to 3:00 | All four of us | Each: name, school, major, one breath. Then: "One balloon, watching so people don't have to." |
+
+Notes on the script:
+
+- **Fill both brackets before recording**: the height you flew (keep it the same as Devpost) and the frame-to-confirm
+  seconds from the Alerts stats strip.
+- **90,000 ft is the vision, not this payload.** Image detail scales with height: our webcam's ~7 cm per pixel at
+  ~100 m becomes ~19 m per pixel at 90,000 ft, coarser than free Sentinel-2 (10 m). The stratospheric version needs
+  a long lens and solar power (Loon-style superpressure balloons stayed up for months). If a judge asks, say that.
+- **Alert flow, say it this way every time:** Claude drafts the alert with its confidence, Grok reads it aloud, a
+  person confirms, then it becomes a Jira incident. Nothing reaches Jira without a human confirming. That is the
+  safety story for Anthropic and the "knows when to ask" story for Hyphenate.
+- Say "rip currents", never "riptides" (lifeguards will correct it). The 80% figure is the US Lifesaving
+  Association's.
+- **Why markets want this data:** settlement is the hard part of any prediction market, and the camera gives a
+  timestamped count every 2 seconds, a history of how a place fills and empties over time. That is the Spacetime
+  pitch.
+- The Hyphenate moment (price held on a bad frame) is now in the 1:50 beat. Read the whole script aloud against a
+  timer once; if it runs long, cut the architecture slide to 10 s first.
 
 ## Tabs to have open, left to right
 
