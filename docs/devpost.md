@@ -107,10 +107,11 @@ tailwind, atlassian-forge, jira, confluence, vercel, grok, xai, cursor
   revenue manager, market operator. Real: the counts, the prices, the settlements. Simulated: play-money credits.
 - **SpacetimeDB:** the whole market is a SpacetimeDB module: LMSR pricing, scheduled closing, oracle-only settlement,
   live subscriptions to every phone.
-- **Convex:** every phone's live map is a Convex query; the station writes in batches; confirming an alert triggers a
+- **Convex:** every phone's live map is a Convex live query; the station writes in batches; confirming an alert triggers a
   Convex action that files the Jira incident.
-- **Atlassian:** Track 1 (agent that does patrol triage) with Track 2 guardrails (audit log, revert, injection
-  defense). Demo site one-atlas-dqcx.atlassian.net.
+- **Atlassian, track: Best Agent.** Balloon Patrol is an agent that does the patrol's triage in Jira (files, de-duplicates,
+  assigns, escalates, writes the shift report), with the security layer built in: audit log, revert, and injection
+  defense. Demo site one-atlas-dqcx.atlassian.net. (Devpost asks us to name the track in the description; keep this line.)
 - **SpaceXAI:** we pulled the freshest free imagery of Ocean Beach and Marina Green from Microsoft Planetary
   Computer and put it next to the balloon's view. Sentinel-2 was 9 days old at 10 m per pixel, so a car is less than
   half a pixel; the sharpest free aerial photo (NAIP, 0.6 m) was from May 2022. The balloon sees about 7 cm per pixel,

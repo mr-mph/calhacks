@@ -139,6 +139,18 @@ Devpost judging criteria (Cal Hacks prizes): **Application** (who it helps, woul
 | MLH: Gemini, Solana, Tiger Data, Vultr, Snowflake, GoDaddy domain | Swag-level prizes | Tiger Data (Postgres for time series) explicitly mentions real-time IoT monitoring |
 | MLH: Commit Fellowship | Interview for a 3-week founder sprint | Working prototype + a supplemental form after submitting |
 
+## Devpost prize list changes (Saturday 9 PM)
+
+- **Atlassian** is now "Best Agent / Best Security Solution for Agents", 4 winners (AirPods Max each). **Say which track
+  in the project description.** We enter Best Agent (Balloon Patrol triages and files incidents) and mention the
+  security layer (audit, revert, injection defense).
+- **SpaceXSI** on Devpost: must be built with Cursor; Grok Bot for planning is a bonus (no Grok API requirement listed).
+  Submitters enter a raffle for a Cursor water bottle; winners get a Cursor keyboard each.
+- **Convex:** "Use real Convex features like live queries and components to win."
+- **Anthropic: Claude for Public Benefit** is now on Devpost ($4,998 listed, plus Claude credits, Max 20x, office hours).
+- **Hyphenate:** 5 winners ($8k / $5k / $3k cash, expedited interviews for the top 5).
+- **CRS:** now $2,000 / $1,000.
+
 ## Free credits and resources
 
 | Resource | How to get it |
