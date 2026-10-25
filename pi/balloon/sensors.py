@@ -36,10 +36,10 @@ COLUMNS = [
 
 # I2C address -> list of driver factories to try (first that succeeds wins).
 def _known_addresses():
-    from .drivers import bmp280, bmp180, accel, sgp30
+    from .drivers import bmp280, bmp180, dps310, accel, sgp30
     return {
-        0x76: [bmp280.BMP280],
-        0x77: [bmp280.BMP280, bmp180.BMP180],
+        0x76: [bmp280.BMP280, dps310.DPS310],
+        0x77: [bmp280.BMP280, bmp180.BMP180, dps310.DPS310],
         0x53: [accel.ADXL345],
         0x18: [accel.LIS3DH],
         0x19: [accel.LIS3DH],
@@ -141,6 +141,7 @@ class Telemetry(threading.Thread):
         self.rezero_requested = False
         self.qnh = config.QNH_HPA          # sea-level pressure for elevation_msl_m
         self.launch_alt = None             # altitude_m when a "launch" marker was recorded
+        self.level_ref = self._load_level()  # gravity vector when the payload hangs "upright" (POST /api/level)
         self.failures = collections.Counter()
         self.start_time = time.time()
         self.samples = 0
@@ -169,6 +170,33 @@ class Telemetry(threading.Thread):
         with open(os.path.join(self.session_dir, "sensors.json"), "w") as f:
             json.dump(self.info, f, indent=2)
         log.info("session %s -> %s", self.session, self.session_dir)
+
+    def _level_path(self):
+        return os.path.join(config.DATA_ROOT, "level.json")
+
+    def _load_level(self):
+        try:
+            with open(self._level_path()) as f:
+                v = json.load(f)
+            return [float(v["ax"]), float(v["ay"]), float(v["az"])]
+        except Exception:
+            return None
+
+    def set_level(self):
+        """Take the current accelerometer vector as the 'upright' reference for tilt_deg."""
+        s = self.latest()
+        if s.get("ax_g") is None:
+            return None
+        ref = [s["ax_g"], s["ay_g"], s["az_g"]]
+        with self.lock:
+            self.level_ref = ref
+        try:
+            with open(self._level_path(), "w") as f:
+                json.dump({"ax": ref[0], "ay": ref[1], "az": ref[2], "t_unix": time.time()}, f)
+        except OSError as e:
+            log.warning("could not save level reference: %s", e)
+        log.info("level reference set to %s", ref)
+        return ref
 
     def add_marker(self, note):
         s = self.latest()
@@ -218,7 +246,7 @@ class Telemetry(threading.Thread):
                 "session": self.session, "session_dir": self.session_dir, "csv": self.csv_path,
                 "samples": self.samples, "uptime_s": round(time.time() - self.start_time, 1),
                 "p0_hpa": self.p0, "zeroed": self.p0 is not None, "sensors": self.info,
-                "qnh_hpa": self.qnh, "launch_alt_m": self.launch_alt,
+                "qnh_hpa": self.qnh, "launch_alt_m": self.launch_alt, "leveled": self.level_ref is not None,
                 "failures": dict(self.failures), "sample_hz": config.SAMPLE_HZ, "markers": self.markers[-50:],
             }
 
@@ -268,7 +296,13 @@ class Telemetry(threading.Thread):
             row["accel_mag_g"] = round(mag, 3)
             row["pitch_deg"] = round(math.degrees(math.atan2(ax, math.sqrt(ay * ay + az * az))), 2)
             row["roll_deg"] = round(math.degrees(math.atan2(ay, az)), 2)
-            row["tilt_deg"] = round(math.degrees(math.acos(max(-1.0, min(1.0, az / mag)))) if mag > 1e-6 else 0.0, 2)
+            if self.level_ref is not None and mag > 1e-6:
+                rx, ry, rz = self.level_ref
+                rmag = math.sqrt(rx * rx + ry * ry + rz * rz) or 1.0
+                cosang = (ax * rx + ay * ry + az * rz) / (mag * rmag)
+                row["tilt_deg"] = round(math.degrees(math.acos(max(-1.0, min(1.0, cosang)))), 2)
+            else:
+                row["tilt_deg"] = round(math.degrees(math.acos(max(-1.0, min(1.0, az / mag)))) if mag > 1e-6 else 0.0, 2)
             for k in ("ax_g", "ay_g", "az_g"):
                 row[k] = round(row[k], 4)
 

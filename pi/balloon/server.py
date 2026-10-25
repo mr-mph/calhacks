@@ -9,6 +9,7 @@ Runs the sampler thread (so logging continues even with no viewers) and serves:
   /api/zero  (POST)    re-zero altitude at the current pressure
   /api/mark  (POST)    {"note": "..."} add a timestamped marker ("launch" also sets the since-launch reference)
   /api/qnh   (POST)    {"qnh": 1016.2} sea-level pressure for the estimated elevation
+  /api/level (POST)    take the current orientation as upright (tilt reference)
   /api/servo (POST)    {"angle": 0..180}  optional camera pan
   /api/sessions        list recorded sessions with sizes
   /data/<path>         download anything in the data directory (CSV, video, stills)
@@ -105,6 +106,13 @@ def api_qnh():
         return jsonify({"ok": False, "error": "qnh out of range"}), 400
     telemetry.qnh = q
     return jsonify({"ok": True, "qnh": q})
+
+
+@app.route("/api/level", methods=["POST"])
+def api_level():
+    """Use the current orientation as 'upright' for the tilt reading (the accelerometer can be mounted any way)."""
+    ref = telemetry.set_level()
+    return jsonify({"ok": ref is not None, "ref": ref})
 
 
 @app.route("/api/mark", methods=["POST"])

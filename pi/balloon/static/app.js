@@ -448,6 +448,7 @@
     $("#mark-note").value = "";
   };
   $("#btn-zero").onclick = () => { if (!replay) fetch("/api/zero", { method: "POST" }); };
+  $("#btn-level").onclick = () => { if (!replay) fetch("/api/level", { method: "POST" }); };
   const servo = $("#servo");
   let servoTimer = null;
   servo.oninput = () => { $("#servo-val").textContent = servo.value + "°"; clearTimeout(servoTimer);

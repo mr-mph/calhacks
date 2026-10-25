@@ -19,8 +19,8 @@ pricing) and markets (prediction markets and an analyst agent on car and foot-tr
 - `docs/launch-plan.md`: helium, lift and tether
 
 Hardware we actually have (confirmed by the team):
-- Grove barometer/temperature (BMP280 family, I2C 0x76/0x77)
-- Grove 3-axis accelerometer (I2C; exact chip unknown until `i2cdetect` runs: 0x53 ADXL345, 0x19 LIS3DHTR, 0x4c MMA7660)
+- Grove High Precision Barometer: Infineon **DPS310/DPS368** at I2C 0x77 (confirmed 2026-10-24; NOT a BMP280)
+- Grove 3-axis accelerometer: **MMA7660** (±1.5 g) at I2C 0x4c (confirmed 2026-10-24)
 - Grove Air Quality Sensor v1.3 (analog, port A4, read through the Base Hat ADC at I2C 0x04)
 - Logitech USB webcam, 16 GB microSD
 - Possibly an MPU-6050 (I2C 0x68, accel + gyro) if someone attaches it
@@ -110,5 +110,10 @@ ssh tarun@balloon.local journalctl -fu balloon-telemetry
   one-atlas-dqcx.atlassian.net (Jira + Confluence); smoke test: create, dedupe, low-confidence queue, injection flagged.
   Station credentials in ~/.config/balloon/forge.json. Still open: the real Pi flight (hardware in SF), rip-current
   model training (queued after VisDrone). **Devpost project not created yet** (do it Saturday night; text in `docs/devpost.md`).
+- 2026-10-24 22:15 (SF): **Pi 4 is live.** Reached via its own AP "BalloonNet" (password balloon123, Pi = 10.42.0.1),
+  provisioned with `tools/mac/sd-provision.sh`; the Pi's Ethernet port on a venue wall jack gives it internet.
+  All four services run; camera streams with HW encoder; detected DPS368 barometer (new driver `drivers/dps310.py`),
+  MMA7660 accelerometer (mounted on its side: press **Level** on the dashboard once it hangs), Base Hat ADC + air quality.
+  QNH set to 1017 hPa from the KSFO METAR. Venue Wi-Fi *and* venue wired isolate clients: use BalloonNet.
 - Ideas not started: metre scale bar on the mosaic (footprint = 2*h*tan(FOV/2)), tilt-rectified stills,
   Claude-vision captions from snapshots (laptop side), ESP32 tether-length encoder, servo pan (code exists, off).
