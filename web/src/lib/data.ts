@@ -9,6 +9,7 @@ export type Lot = FunctionReturnType<typeof api.live.lots>[number];
 export type Decision = Lot["decisions"][number];
 export type Alerts = FunctionReturnType<typeof api.live.alerts>;
 export type Alert = Alerts["open"][number];
+export type AlertStats = FunctionReturnType<typeof api.stats.lastDay>;
 
 export const CONFIDENCE_MIN = 0.5;
 const TILT_MAX_DEG = 15;

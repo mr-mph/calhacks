@@ -14,7 +14,9 @@ import type * as ingest from "../ingest.js";
 import type * as jira from "../jira.js";
 import type * as live from "../live.js";
 import type * as secrets from "../secrets.js";
+import type * as stats from "../stats.js";
 import type * as validators from "../validators.js";
+import type * as watch from "../watch.js";
 
 import type {
   ApiFromModules,
@@ -29,7 +31,9 @@ declare const fullApi: ApiFromModules<{
   jira: typeof jira;
   live: typeof live;
   secrets: typeof secrets;
+  stats: typeof stats;
   validators: typeof validators;
+  watch: typeof watch;
 }>;
 
 /**

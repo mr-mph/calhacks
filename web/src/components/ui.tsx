@@ -64,3 +64,20 @@ export function EmptyState({ icon, title, children, command }: EmptyProps) {
     </div>
   );
 }
+
+interface StatTileProps {
+  label: string;
+  children: ReactNode;
+  note?: ReactNode;
+  className?: string;
+}
+
+export function StatTile({ label, children, note, className = "" }: StatTileProps) {
+  return (
+    <div className={`flex min-w-0 flex-col gap-1 rounded-[16px] bg-surface p-3 shadow-soft ${className}`}>
+      <span className="text-xs font-semibold text-muted">{label}</span>
+      <span className="nums text-2xl leading-none font-bold">{children}</span>
+      {note && <span className="font-mono text-xs text-muted">{note}</span>}
+    </div>
+  );
+}
