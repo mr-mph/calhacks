@@ -10,11 +10,14 @@ case "$MODE" in
   ap)
     SSID="${2:-BalloonNet}"; PSK="${3:-balloon123}"
     nmcli con delete balloon-ap >/dev/null 2>&1 || true
+    [ ${#PSK} -ge 8 ] || { echo "password must be at least 8 characters" >&2; exit 1; }
     nmcli con add type wifi ifname wlan0 con-name balloon-ap autoconnect yes connection.autoconnect-priority 50 \
-      ssid "$SSID" 802-11-wireless.mode ap 802-11-wireless.band bg ipv4.method shared ipv6.method ignore \
-      wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$PSK" >/dev/null
+      ssid "$SSID" 802-11-wireless.mode ap 802-11-wireless.band bg 802-11-wireless.channel 6 \
+      802-11-wireless.powersave 2 ipv4.method shared ipv4.addresses 10.42.0.1/24 ipv6.method ignore \
+      wifi-sec.key-mgmt wpa-psk wifi-sec.proto rsn wifi-sec.pairwise ccmp wifi-sec.group ccmp wifi-sec.psk "$PSK" >/dev/null
     nmcli con up balloon-ap >/dev/null
-    echo "AP up: join Wi-Fi '$SSID' (password $PSK), dashboard at http://10.42.0.1:8080"
+    echo "AP up: join Wi-Fi '$SSID' (password $PSK), then open http://10.42.0.1:8080  (also http://balloon.local:8080)"
+    echo "ssh tarun@10.42.0.1   |   back to a normal Wi-Fi: sudo $0 client"
     ;;
   client)
     nmcli con down balloon-ap >/dev/null 2>&1 || true
