@@ -32,6 +32,7 @@ COLUMNS = [
     "eco2_ppm", "tvoc_ppb",
     "cpu_temp_c", "wifi_rssi_dbm", "disk_free_gb", "load_1m",
     "elevation_msl_m", "alt_since_launch_m",
+    "det_cars", "det_people", "det_age_s",
 ]
 
 # I2C address -> list of driver factories to try (first that succeeds wins).
@@ -142,6 +143,7 @@ class Telemetry(threading.Thread):
         self.qnh = config.QNH_HPA          # sea-level pressure for elevation_msl_m
         self.launch_alt = None             # altitude_m when a "launch" marker was recorded
         self.level_ref = self._load_level()  # gravity vector when the payload hangs "upright" (POST /api/level)
+        self.external = {}                   # extra fields merged into each row (e.g. detector counts from the station)
         self.failures = collections.Counter()
         self.start_time = time.time()
         self.samples = 0

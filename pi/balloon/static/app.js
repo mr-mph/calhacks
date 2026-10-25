@@ -15,6 +15,7 @@
     { id: "altitude", title: "Altitude (relative)", unit: "m", series: [{ f: "altitude_m", label: "altitude" }], markers: true, dec: 1 },
     { id: "since", title: "Altitude since launch", unit: "m", series: [{ f: "alt_since_launch_m", label: "Δ since launch" }], dec: 1 },
     { id: "vspeed", title: "Vertical speed", unit: "m/s", series: [{ f: "vspeed_mps", label: "v" }], dec: 2 },
+    { id: "det", title: "Detections in view (YOLO)", unit: "", series: [{ f: "det_cars", label: "cars" }, { f: "det_people", label: "people" }], dec: 0 },
     { id: "pressure", title: "Pressure", unit: "hPa", series: [{ f: "pressure_hpa", label: "pressure" }], dec: 2 },
     { id: "temp", title: "Temperature", unit: "°C", series: [{ f: "temp_c", label: "temp" }], dec: 2 },
     { id: "humidity", title: "Humidity", unit: "%", series: [{ f: "humidity_pct", label: "RH" }], dec: 1 },
