@@ -151,3 +151,43 @@ moored-balloon rules (over 6 ft or 115 cu ft).
 
 Hyphenate wants the video to open with "the moment" (the agent catching something, recovering, or defending a
 decision), so cut a version that starts with step 4 or a market voiding on bad frames.
+
+## Recording the demo video
+
+Two stand-in sessions sit in `ground/out/sessions/` on Tarun's Mac (gitignored; rebuild steps under "Stand-in session" in
+`ground/STATION.md`). Run them one at a time from the repo root: the map shows whichever session posted last.
+
+**1. Parking: cars, lot price, markets.** 10 VisDrone frames of a crossing with an 18-space lot, 22 s per loop.
+
+```bash
+ground/demo.sh ground/out/sessions/visdrone-standin-0000356        # prod map + Spacetime markets
+```
+
+Frames show 23 to 44 cars in view and 5 to 16 in `lot-a`. About 10 s in, `lot-a` goes from $3.00 to $3.75 (89% full,
+capped by the 25% step) with Claude's explanation; the next change can come 5 minutes later. The first market is
+proposed after 10 minutes of replay, so start this 10+ minutes before filming the Markets shot.
+
+**2. Beach: rip alert, patrol, Jira.** Stop the parking replay first (Ctrl-C). 8 RipAID frames from one fixed camera,
+each labelled with a rip, with `surf` (water) and `beach` zones.
+
+```bash
+ground/demo.sh ground/out/sessions/ripaid-standin --no-spacetime
+```
+
+Frame 2 (2 s in) shows the rip box on the right and 2 people in `surf`. Within about 15 s the Alerts tab shows Claude's
+alert, its uncertainty line and Grok's audio. Press "Confirm alert" (patrol code), then show the Jira incident (BPAT).
+In rehearsal Claude called the rip "unclear", which is why a person confirms. Alerts repeat at most every 2 min.
+
+**3. Clean the public map.** Repeat each purge until every count is 0, then `admin:purgeSite` with `{"site": "<name>"}`:
+
+```bash
+cd web && npx convex run --prod admin:purgeSession '{"session": "visdrone-standin-0000356"}'   # then "ripaid-standin"
+```
+
+That needs a checkout linked with `npx convex dev`. Without one, use a production deploy key (Convex dashboard,
+Settings, Deploy keys) over HTTP. Spacetime markets can't be deleted.
+
+```bash
+curl -s https://agreeable-penguin-576.convex.cloud/api/mutation -H "Authorization: Convex $CONVEX_DEPLOY_KEY" \
+  -H 'Content-Type: application/json' -d '{"path": "admin:purgeSession", "args": {"session": "ripaid-standin"}, "format": "json"}'
+```

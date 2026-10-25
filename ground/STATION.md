@@ -135,6 +135,18 @@ which all align to one reference. To rebuild it, copy these val images in order 
 
 It is not balloon data: there is no telemetry, and the street is in the VisDrone set, not San Francisco.
 
+The beach stand-in, `sites/ripaid-standin.json`, maps `ground/out/sessions/ripaid-standin/`: 8 RipAID validation frames
+from the fixed camera `snb_s_02`, each labelled with a rip, converted to JPEG as `1792910000.000.jpg`,
+`1792910002.000.jpg`, and so on, with the same `index.csv`. The reference is the second frame. In order:
+
+```
+2022-05-31-09-00  2022-06-24-10-00  2022-05-24-16-00  2022-09-03-17-00
+2022-06-23-08-00  2022-09-29-09-00  2022-09-29-08-00  2021-10-05-10-00
+```
+
+(each `datasets/ripaid/images/val/snb_s_02_<time>.png`). The second frame triggers the alert: a rip candidate and 2
+people in the `surf` zone. Frames 3, 4 and 8 don't align (lighting), so their zone counts are blank.
+
 ## Output
 
 `ground/out/<session>/`:
