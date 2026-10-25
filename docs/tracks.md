@@ -52,6 +52,12 @@ Devpost judging criteria (Cal Hacks prizes): **Application** (who it helps, woul
   is the right size; (2) a real problem you lived or heard from someone who did; (3) it works, and one thing usable
   on Monday beats a broad demo; (4) Claude does something that matters, and you know where it could go wrong.
 - Slack: `#cohost-anthropic`. Claude Corner coffee chats at the booth.
+- Saturday 7:49 PM, Anthropic judge: no single main criterion; all four count equally. They want a thoughtfully
+  designed product built and running meaningfully on Claude that solves a specific community's problem in a way
+  that's **tangible and measurable**, and "the narrower, the better". For us: Ocean Beach swimmers and patrol, and
+  numbers we can show (alerts drafted, time from frame to confirmed alert, people counted near a rip).
+- Saturday 8:18 PM: optional 2-minute "Claude Student Survey" form in `#cohost-anthropic`; about 20 random submitters get
+  a printed copy of Anthropic safety research.
 
 **Hyphenate: The Hyphenated Enterprise, Autonomous Systems for Finance** (co-host). Us: in.
 - Prize: $8,000 / $5,000 / $3,000, plus an expedited interview for the top 5 teams.
