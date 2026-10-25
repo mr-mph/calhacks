@@ -1,4 +1,4 @@
-# Overhead: demo video script and recording plan
+# Sauron: demo video script and recording plan
 
 Target length: under 3:00. Upload to YouTube as Unlisted, paste the link on Devpost.
 

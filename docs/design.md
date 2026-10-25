@@ -1,6 +1,6 @@
-# Overhead: design system
+# Sauron: design system
 
-Decided Saturday Oct 24. The product is named **Overhead**. Brand and live map use a warm editorial style (warm
+Decided Saturday Oct 24. The product is named **Sauron**. Brand and live map use a warm editorial style (warm
 black, off-white, a serif display face, one coral accent); the market page borrows Kalshi's mechanics in our palette,
 so it reads as one product. Dark is the default; light mode is supported. Every web surface (Convex map, Spacetime market, landing)
 takes its tokens from here. The Jira app uses Atlassian's own UI Kit and is exempt.
@@ -29,7 +29,7 @@ Contrast: body text on `--bg` and `--surface` must pass WCAG AA in both themes.
 
 | Role | Face | Notes |
 |---|---|---|
-| Display | `Charter, "Bitstream Charter", "Charis SIL", Georgia, serif` (Charis SIL from Google Fonts as the web fallback) | The name "Overhead.", page titles, big numbers on the landing. Bold for the name, regular for headlines. Used sparingly |
+| Display | `Charter, "Bitstream Charter", "Charis SIL", Georgia, serif` (Charis SIL from Google Fonts as the web fallback) | The name "Sauron.", page titles, big numbers on the landing. Bold for the name, regular for headlines. Used sparingly |
 | UI | Manrope (Google Fonts), 400/500/600/700 | Everything interactive and all running text in the apps |
 | Data | Manrope with `font-variant-numeric: tabular-nums` | Counts, prices, odds, volumes |
 | Caption | IBM Plex Mono 400/500 | Timestamps, frame ids, "updated 4 s ago", tiny labels |
@@ -68,9 +68,9 @@ Buying opens a bottom sheet: Yes/No toggle, amount, cost and payout computed liv
 buttons, Confirm (accent) and Dismiss. Confirmed alerts go to the patrol's Jira.
 
 **Navigation.** Under 768 px: bottom tab bar (Live, Markets, Alerts). From 768 px up: the same three as a top bar with
-"Overhead." in Charter on the left. Every app switches at the same 768 px breakpoint (Tailwind `md`).
+"Sauron." in Charter on the left. Every app switches at the same 768 px breakpoint (Tailwind `md`).
 
-**Landing (if time).** "Overhead." huge in bold Charter over a dimmed live frame, one sentence ("A camera that stays
+**Landing (if time).** "Sauron." huge in bold Charter over a dimmed live frame, one sentence ("A camera that stays
 over one place for hours, so a beach, a parking lot and a market can see what's happening now."), and two pills:
 Live view, Markets.
 

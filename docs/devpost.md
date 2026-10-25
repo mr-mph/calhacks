@@ -1,10 +1,10 @@
-# Devpost draft: Overhead
+# Devpost draft: Sauron
 
 Paste section by section into Devpost. Anything in [brackets] needs a real fact from the team before submitting
 (flight results, the beachgoer conversation). Don't submit a bracket.
 
-**Tagline:** A camera that stays over one place for hours, so a beach, a parking lot and a market can see what's
-happening now.
+**Tagline:** Persistent eye in the sky. A camera that stays over one place for hours, so a beach, a parking lot and a
+crowd can see what's happening now.
 
 ## Inspiration
 

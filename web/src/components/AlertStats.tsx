@@ -38,7 +38,7 @@ function confirmSentence(stats: Stats): string | null {
 
 function devpostSummary(stats: Stats): string {
   const sentences = [
-    `In the last 24 hours, Overhead watched ${plural(stats.framesWatched, "aerial frame", "aerial frames")} of the beach.`,
+    `In the last 24 hours, Sauron watched ${plural(stats.framesWatched, "aerial frame", "aerial frames")} of the beach.`,
     `Claude drafted ${plural(stats.drafted, "beach alert", "beach alerts")}; patrol members confirmed ` +
       `${count(stats.confirmed)} and dismissed ${count(stats.dismissed)}, and nothing went out without a person's confirmation.`,
     confirmSentence(stats),
