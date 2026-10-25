@@ -68,6 +68,10 @@ In `assets/generated/` (not in git):
 - `ml-crowd-concert.mp4`: outdoor concert from directly above, people counted
 - `ml-parking-lot.mp4`, `ml-parking-busy.mp4`: parking lots from directly above, 100 to 250+ cars counted
 
+Footage from the team (not in git):
+
+- `~/Downloads/intial floating.mov` (36 s, vertical, 120 fps): the balloon bunch floating up to the venue ceiling at Cal Hacks. Black for the first second; balloons rising from about 0:06, best around 0:15 to 0:28; a teammate looking up at the end. Use as the backup opener if the outdoor launch footage falls short. At 120 fps it slows down cleanly.
+
 Credits if asked: aerial imagery VisDrone2019, beach imagery RipAID (CC BY 4.0), drone video from Pexels (free license).
 
 ## Hyphenate beat (autonomous systems for finance)
