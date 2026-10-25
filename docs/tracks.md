@@ -61,6 +61,8 @@ Devpost judging criteria (Cal Hacks prizes): **Application** (who it helps, woul
 - Bring: a demo video that opens with that moment, a live demo (they may try their own scenario), one line on the
   roles it fills, and what's real vs. simulated.
 - Slack: `#cohost-hyphenate` (workshop recording and slides pinned). Select the track on Devpost.
+- Saturday 5:50 PM, Hyphenate team: bring your early MVP or raw idea to their booth and talk it through with them
+  before submitting (they're running office hours there).
 
 **Spacetime: Best Use of Spacetime** (co-host). Us: in, for the prediction market.
 - Prize: $2,048 / $1,024 / $512.
