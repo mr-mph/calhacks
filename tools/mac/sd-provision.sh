@@ -105,6 +105,7 @@ users:
 ssh_pwauth: true
 runcmd:
 - [ systemctl, enable, --now, ssh ]
+- [ bash, /boot/firmware/balloon/firstboot.sh ]
 EOU
 cat > "$BOOT/network-config" <<EON
 network:
