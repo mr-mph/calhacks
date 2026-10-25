@@ -126,6 +126,8 @@ def api_elevation():
         h = float(data.get("elevation_m"))
     except (TypeError, ValueError):
         return jsonify({"ok": False, "error": "elevation_m required"}), 400
+    if not -500 <= h <= 9000:
+        return jsonify({"ok": False, "error": "elevation_m out of range (-500 to 9000)"}), 400
     q = telemetry.set_ground_elevation(h)
     if q is None:
         return jsonify({"ok": False, "error": "no pressure reading yet"}), 503

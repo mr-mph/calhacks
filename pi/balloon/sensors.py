@@ -336,7 +336,12 @@ class Telemetry(threading.Thread):
                     self.failures[s.name] += 1
                     if self.failures[s.name] in (1, 5, 50, 500):
                         log.warning("%s read failed (%d): %s", s.name, self.failures[s.name], e)
-            self._derive(row, t_mono)
+            try:
+                self._derive(row, t_mono)
+            except Exception as e:  # a bad reference (QNH, level) must never stop logging
+                self.failures["derive"] += 1
+                if self.failures["derive"] in (1, 5, 50, 500):
+                    log.error("derive failed (%d): %s", self.failures["derive"], e)
             try:
                 self._csv.writerow(row)
             except Exception as e:
