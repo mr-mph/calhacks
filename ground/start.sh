@@ -26,15 +26,15 @@ if [ ! -x .venv/bin/python ]; then
 fi
 [ -f ~/.config/balloon/secrets.env ] && set -a && . ~/.config/balloon/secrets.env && set +a
 
-pids=()
-cleanup() { echo; bold "stopping…"; for p in "${pids[@]}"; do kill "$p" 2>/dev/null; done; wait 2>/dev/null; exit 0; }
+pids=""
+cleanup() { echo; bold "stopping…"; for p in $pids; do pkill -P "$p" 2>/dev/null; kill "$p" 2>/dev/null; done; pkill -f "station.py --pi $PI" 2>/dev/null; pkill -f "narrator.py --pi $PI" 2>/dev/null; wait 2>/dev/null; exit 0; }
 trap cleanup INT TERM
 
 # --- detector ---
 export BALLOON_ALL_CLASSES=$([ "${CLASSES:-all}" = "all" ] && echo 1 || echo 0)
 bold "detector: YOLO on the Pi's stills, boxes -> dashboard (classes: ${CLASSES:-all})"
 ( while true; do PYTHONUNBUFFERED=1 .venv/bin/python station.py --pi "$PI" --no-convex --no-spacetime --poll 2 >> out/station-live.log 2>&1; sleep 5; done ) &
-pids+=($!)
+pids="$pids $!"
 
 # --- narrator ---
 if [ "${NO_NARRATOR:-0}" = "1" ]; then
@@ -42,10 +42,11 @@ if [ "${NO_NARRATOR:-0}" = "1" ]; then
 elif [ -z "${ANTHROPIC_API_KEY:-}" ]; then
   echo "narrator: off (no ANTHROPIC_API_KEY in ~/.config/balloon/secrets.env)"
 else
-  NV=(); [ "${NO_VOICE:-0}" = "1" ] && NV=(--no-voice)
+  NV=""; [ "${NO_VOICE:-0}" = "1" ] && NV="--no-voice"
   bold "narrator: Claude captions every ${INTERVAL:-20} s$([ "${NO_VOICE:-0}" = "1" ] && echo ' (no voice)' || echo ' + ElevenLabs voice')"
-  ( while true; do PYTHONUNBUFFERED=1 .venv/bin/python narrator.py --pi "$PI" --interval "${INTERVAL:-20}" "${NV[@]}" >> out/narrator.log 2>&1; sleep 5; done ) &
-  pids+=($!)
+  # shellcheck disable=SC2086  (NV is intentionally word-split; macOS bash 3.2 cannot expand an empty array under set -u)
+  ( while true; do PYTHONUNBUFFERED=1 .venv/bin/python narrator.py --pi "$PI" --interval "${INTERVAL:-20}" $NV >> out/narrator.log 2>&1; sleep 5; done ) &
+  pids="$pids $!"
 fi
 
 echo
