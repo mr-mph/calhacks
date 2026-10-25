@@ -23,7 +23,11 @@ cmds = [
   "nmcli con up cable || true",
   "nmcli con up venue-wifi || true",
   "sleep 8",
-  "( echo; echo '===== BALLOON PI NETWORK ====='; ip -br addr; echo; nmcli -t -f DEVICE,STATE,CONNECTION dev status; echo; ping -c 1 -W 2 deb.debian.org >/dev/null 2>&1 && echo 'INTERNET: yes' || echo 'INTERNET: no'; echo 'ssh tarun@169.254.2.2  (cable)'; echo '==============================' ) > /dev/tty1 2>&1 || true",
+  # big console font so a projector is readable
+  "for f in /usr/share/consolefonts/Lat15-TerminusBold32x16.psf.gz /usr/share/consolefonts/Lat15-TerminusBold28x14.psf.gz /usr/share/consolefonts/Lat15-Fixed18.psf.gz; do [ -f \"$f\" ] && setfont -C /dev/tty1 \"$f\" && break; done || true",
+  # report: on screen (repeated for 3 min so the login prompt can't hide it) and on the boot partition
+  "cat > /usr/local/bin/balloon-netreport <<'EOS'\n#!/bin/bash\n{\necho '== BALLOON PI NETWORK =='\nip -br addr | grep -v '^lo'\necho\nnmcli -t -f DEVICE,STATE,CONNECTION dev status | grep -v '^lo'\necho\nping -c 1 -W 2 169.254.2.1 >/dev/null 2>&1 && echo 'MAC CABLE: reachable' || echo 'MAC CABLE: no answer'\nping -c 1 -W 2 deb.debian.org >/dev/null 2>&1 && echo 'INTERNET: yes' || echo 'INTERNET: no'\necho 'ssh tarun@169.254.2.2'\necho '======================='\n} > /tmp/netreport.txt 2>&1\ncp /tmp/netreport.txt /boot/firmware/balloon-net.txt 2>/dev/null\n( nmcli con show; echo; nmcli dev wifi list 2>/dev/null | head -15; echo; journalctl -u NetworkManager -n 40 --no-pager ) > /boot/firmware/balloon-net-detail.txt 2>&1\nclear > /dev/tty1\ncat /tmp/netreport.txt > /dev/tty1\nEOS\nchmod +x /usr/local/bin/balloon-netreport",
+  "( for i in 1 2 3 4 5 6 7 8 9; do /usr/local/bin/balloon-netreport; sleep 20; done ) >/dev/null 2>&1 &",
 ]
 rc = cfg.get("runcmd") or []
 rc = [c for c in rc if not (isinstance(c, str) and "BALLOON PI NETWORK" in c)]
@@ -36,5 +40,7 @@ PY
 NEWID="rpi-nokb-$(date +%s)"
 [ -f "$BOOT/meta-data" ] && sed -i '' -E "s/^(instance[-_]id): .*/\1: $NEWID/" "$BOOT/meta-data"
 grep -q "ds=nocloud;i=" "$BOOT/cmdline.txt" && sed -i '' -E "s/(ds=nocloud;i=)[^ ]*/\1$NEWID/" "$BOOT/cmdline.txt"
+grep -q "video=HDMI" "$BOOT/cmdline.txt" || sed -i '' 's/^console=serial0,115200 /console=serial0,115200 video=HDMI-A-1:1024x768@60 /' "$BOOT/cmdline.txt"
+sed -i '' 's/ quiet splash plymouth.ignore-serial-consoles//' "$BOOT/cmdline.txt"
 python3 -c "import yaml; yaml.safe_load(open('$BOOT/user-data')); print('yaml ok')"
 rm -f "$BOOT/user-data.bak"; sync; diskutil unmount "$BOOT" >/dev/null && echo "EJECTED. Card into the Pi with monitor attached; the addresses appear on screen ~90 s after boot."
