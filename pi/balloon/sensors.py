@@ -255,7 +255,7 @@ class Telemetry(threading.Thread):
                 "session": self.session, "session_dir": self.session_dir, "csv": self.csv_path,
                 "samples": self.samples, "uptime_s": round(time.time() - self.start_time, 1),
                 "p0_hpa": self.p0, "zeroed": self.p0 is not None, "sensors": self.info,
-                "qnh_hpa": self.qnh, "launch_alt_m": self.launch_alt, "leveled": self.level_ref is not None,
+                "qnh_hpa": self.qnh, "launch_alt_m": self.launch_alt, "leveled": self.level_ref is not None, "level_ref": self.level_ref,
                 "failures": dict(self.failures), "sample_hz": config.SAMPLE_HZ, "markers": self.markers[-50:],
             }
 

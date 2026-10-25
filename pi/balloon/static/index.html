@@ -35,6 +35,28 @@
   <span class="chip" id="rp-session">replay</span>
 </section>
 <section class="tiles" id="tiles" aria-label="Latest readings"></section>
+<section class="orient card" id="orient-card" aria-label="Payload orientation">
+  <div class="card-head"><h2>Orientation</h2><span class="muted" id="orient-note">tilt from the accelerometer (press Level when it hangs still)</span></div>
+  <div class="orient-body">
+    <svg id="orient-side" viewBox="0 0 160 220" aria-label="Side view of balloons, tether and payload">
+      <line x1="10" y1="206" x2="150" y2="206" class="ground"/>
+      <g id="rig" transform="rotate(0 80 36)">
+        <circle cx="62" cy="30" r="16" class="balloon"/><circle cx="98" cy="30" r="16" class="balloon"/><circle cx="80" cy="18" r="16" class="balloon"/>
+        <line x1="80" y1="46" x2="80" y2="150" class="tether"/>
+        <rect x="66" y="150" width="28" height="22" rx="4" class="payload"/>
+        <rect x="76" y="172" width="8" height="6" class="camera"/>
+      </g>
+      <text x="80" y="200" class="lbl" text-anchor="middle" id="orient-side-lbl">0.0°</text>
+    </svg>
+    <svg id="orient-bubble" viewBox="0 0 160 160" aria-label="Bubble level: dot shows tilt direction and amount">
+      <circle cx="80" cy="80" r="70" class="ring"/><circle cx="80" cy="80" r="46" class="ring faint"/><circle cx="80" cy="80" r="23" class="ring faint"/>
+      <line x1="10" y1="80" x2="150" y2="80" class="cross"/><line x1="80" y1="10" x2="80" y2="150" class="cross"/>
+      <text x="80" y="9" class="tick" text-anchor="middle">+x</text><text x="155" y="83" class="tick">+y</text>
+      <circle id="bubble" cx="80" cy="80" r="9" class="bubble"/>
+      <text x="80" y="156" class="lbl" text-anchor="middle" id="orient-bubble-lbl">level</text>
+    </svg>
+  </div>
+</section>
 <section class="flight" id="flight">
   <span class="chip" id="chip-peak">peak — m</span>
   <span class="chip" id="chip-aloft">launch not marked</span>

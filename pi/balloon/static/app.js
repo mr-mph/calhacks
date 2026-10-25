@@ -325,6 +325,27 @@
       if (t.extra) el.querySelector(".x").textContent = latest[t.extra] ? " " + latest[t.extra] : "";
     }
   }
+  // ---------- orientation (bubble level + side view) ----------
+  function renderOrientation() {
+    const ax = latest.ax_g, ay = latest.ay_g, az = latest.az_g, tilt = latest.tilt_deg;
+    const card = $("#orient-card");
+    if (ax == null || tilt == null) { card.classList.add("hidden"); return; }
+    card.classList.remove("hidden");
+    // direction of lean in the sensor's horizontal plane; magnitude = tilt relative to the Level reference
+    const ref = status.level_ref;
+    let hx = ax, hy = ay;
+    if (ref) { hx = ax - ref[0]; hy = ay - ref[1]; }           // deviation from the upright reference
+    const dir = Math.atan2(hy, hx);
+    const r = Math.min(1, tilt / 45) * 70;                     // 45° reaches the outer ring
+    $("#bubble").setAttribute("cx", (80 + r * Math.cos(dir)).toFixed(1));
+    $("#bubble").setAttribute("cy", (80 - r * Math.sin(dir)).toFixed(1));
+    $("#orient-bubble-lbl").textContent = tilt < 1.5 ? "level" : tilt.toFixed(1) + "° lean";
+    const side = Math.max(-80, Math.min(80, tilt * (Math.cos(dir) >= 0 ? 1 : -1)));
+    $("#rig").setAttribute("transform", "rotate(" + side.toFixed(1) + " 80 36)");
+    $("#orient-side-lbl").textContent = tilt.toFixed(1) + "°";
+    $("#orient-note").textContent = status.leveled ? "tilt relative to the Level reference" : "press Level once the payload hangs still";
+  }
+
   let peakAlt = null;
   function renderFlight() {
     if (replay) { peakAlt = null; const end = endIndex(); const a = cols.altitude_m || []; for (let i = 0; i < end; i++) if (a[i] != null && (peakAlt == null || a[i] > peakAlt)) peakAlt = a[i]; }
@@ -376,7 +397,7 @@
     }
     if (dirty) {
       dirty = false;
-      redraw(); renderTiles(); renderChips(); renderFlight(); renderProfiles(false);
+      redraw(); renderTiles(); renderChips(); renderFlight(); renderOrientation(); renderProfiles(false);
       if ($("#values-table").closest("details").open) renderTable();
     }
   }

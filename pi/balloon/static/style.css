@@ -131,3 +131,19 @@ th { color: var(--muted); font-weight: 500; }
 .qr-box { background: #fff; color: #0b0b0b; border-radius: 12px; padding: 16px; text-align: center; max-width: 90vw; }
 .qr-box img { width: min(70vw, 360px); height: auto; display: block; margin: 0 auto 8px; }
 .qr-url { font-size: 14px; font-weight: 600; word-break: break-all; }
+
+.orient { margin: 12px 16px 0; }
+.orient-body { display: flex; gap: 12px; justify-content: center; align-items: center; padding: 8px; flex-wrap: wrap; }
+.orient-body svg { width: 200px; max-width: 45vw; height: auto; }
+.orient .balloon { fill: var(--s1); opacity: .9; }
+.orient .tether { stroke: var(--ink-2); stroke-width: 1.5; }
+.orient .payload { fill: var(--s2); }
+.orient .camera { fill: var(--ink); }
+.orient .ground { stroke: var(--axis); stroke-width: 1; stroke-dasharray: 3 3; }
+.orient .ring { fill: none; stroke: var(--axis); stroke-width: 1.5; }
+.orient .ring.faint { stroke: var(--grid); }
+.orient .cross { stroke: var(--grid); stroke-width: 1; }
+.orient .bubble { fill: var(--s3); stroke: var(--surface); stroke-width: 2; transition: cx .25s linear, cy .25s linear; }
+.orient #rig { transition: transform .25s linear; transform-box: view-box; }
+.orient .lbl { font: 600 12px system-ui; fill: var(--ink); }
+.orient .tick { font: 10px system-ui; fill: var(--muted); }
