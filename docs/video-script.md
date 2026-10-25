@@ -46,8 +46,22 @@ In `assets/generated/` (not in git):
 
 - `ml-traffic-0000271.mp4`, `ml-traffic-0000335.mp4`, `ml-traffic-0000360.mp4`: cars and people boxed by our detector
 - `ml-rip-current.mp4`: rip currents highlighted on beach cameras the model never trained on
+- `ml-sf-bay-bridge-topdown.mp4`, `ml-sf-bay-bridge.mp4`, `ml-sf-noe-valley.mp4`: San Francisco traffic, real drone video, cars tracked
+- `ml-crowd-concert.mp4`: outdoor concert from directly above, people counted
+- `ml-parking-lot.mp4`, `ml-parking-busy.mp4`: parking lots from directly above, 100 to 250+ cars counted
 
-Credits if asked: aerial imagery VisDrone2019, beach imagery RipAID (CC BY 4.0).
+Credits if asked: aerial imagery VisDrone2019, beach imagery RipAID (CC BY 4.0), drone video from Pexels (free license).
+
+## Hyphenate beat (autonomous systems for finance)
+
+The surge-pricing agent is the lot's revenue manager. Show, in this order:
+
+1. `ml-crowd-concert.mp4`: "A concert is letting out."
+2. `ml-parking-busy.mp4`: "The lot next door is filling up."
+3. Live tab, lot price going up, open "Why did the price change?": "The agent raised the price, inside hard limits, and wrote down why."
+4. A frame marked unreliable with the price held: "When the camera can't see clearly, it refuses to guess."
+
+Hyphenate asks for the moment the agent catches something or defends a decision. Step 4 is that moment.
 
 ## Commands (repo root, Mac on the hotspot or BalloonNet with the iPhone plugged in)
 
