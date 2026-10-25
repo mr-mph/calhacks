@@ -34,9 +34,14 @@ Typecheck and lint: `pnpm build`, `pnpm lint`.
 | `prices` | price point for a lot | every decision, or `ingest:batch` `prices` |
 | `decisions` | pricing decision: inputs, action, price before/after, explanation | `ingest:batch` |
 | `alerts` | drafted beach alert, status `needs_review`, `confirmed` or `dismissed`, plus its Jira send result and optional Grok audio (`audioId` in file storage, `voice`) | `ingest:batch`; status by `alerts:review`; `jira` by `jira:send` |
+| `watchHours` | session and hour: frames watched and the most people in the water with a rip in view | `ingest:batch` |
 
 Queries the page uses: `live:now` (frame, observation, site), `live:lots` (prices and decisions per lot),
-`live:alerts`. They are split so a new frame every 2 s only re-runs `live:now`.
+`live:alerts`, `stats:lastDay` (the strip above Alerts: alerts drafted, confirmed and dismissed, median and slowest
+seconds from frame to confirmation, people near a rip, frames watched, Jira incidents, over the 24 h ending at the
+newest frame). They are split so a new frame every 2 s only re-runs `live:now` and the small `stats:lastDay`.
+`watchHours` exists so the stats never scan `observations`, which would hit Convex's per-query read limit on a
+multi-hour flight; frames ingested before it existed are not counted.
 
 Ingest functions require the shared secret in Convex env var `INGEST_SECRET`. Dev and prod have different
 secrets. To rotate one:
